@@ -17,7 +17,7 @@ import {
   } from '@rainbow-me/rainbowkit'
   
   export const config = getDefaultConfig({
-    appName: 'hodlcoin',
+    appName: 'Raindrop',
     projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ?? '',
     chains: [
       scrollSepolia,
