@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes rain {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.animate-rain {
+  animation: rain linear infinite;
+}
+
+@keyframes splash {
+  0% {
+    transform: scale(0.2, 0.2);
+    opacity: 0;
+  }
+  80% {
+    transform: scale(0.2, 0.2);
+    opacity: 0;
+  }
+  85% {
+    transform: scale(1.2, 0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5, 0.5);
+    opacity: 0;
+  }
+}
+
+.animate-splash {
+  animation: splash linear infinite;
+  pointer-events: none;
+}
+
+@keyframes splash-droplet {
+  0%, 80% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-18px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.animate-splash-droplet {
+  animation: splash-droplet linear infinite;
+  pointer-events: none;
+}
