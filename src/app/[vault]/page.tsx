@@ -3,7 +3,7 @@ import InteractionClient from './InteractionClient'
 import { Suspense } from 'react'
 
 export async function generateStaticParams() {
-  return [{ vaultId: 'v' }]
+  return [{ vault: 'r' }]
 }
 
 export default function VaultPage() {

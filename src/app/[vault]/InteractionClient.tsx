@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { getPublicClient } from '@wagmi/core';
 import { parseEther, formatUnits, parseUnits } from 'viem';
@@ -38,7 +38,9 @@ interface Drop {
 
 export default function VaultDetails() {
   const router = useRouter();
-  const { address: vaultAddress } = useParams<{ address: string }>();
+  const params = useParams<{ vault: string }>();
+  const searchParams = useSearchParams();
+  const vaultAddress = searchParams.get('vault');
   const { address: userAddress, isConnected } = useAccount();
 
   const [vault, setVault] = useState<VaultDetailsState | null>(null);
