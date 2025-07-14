@@ -79,8 +79,8 @@ export default function CreateVault() {
         args: [
           formData.name,
           formData.symbol,
-          formData.coin,
-          formData.creatorAddress,
+          formData.coin as `0x${string}`,
+          formData.creatorAddress as `0x${string}`,
           BigInt(formData.vaultCreatorFee),
           BigInt(0), // Default treasury fee set to 0
         ],
