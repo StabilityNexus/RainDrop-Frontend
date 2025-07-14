@@ -1,7 +1,14 @@
-// import type { NextConfig } from "next";
+const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true
+  },
+  experimental: {
+    esmExternals: 'loose'
+  },
+  basePath: process.env.NODE_ENV === 'production' ? '/RainDrop-Frontend' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/RainDrop-Frontend/' : '',
+};
 
-// const nextConfig: NextConfig = {
-//   /* config options here */
-// };
-
-// export default nextConfig;
+export default nextConfig;
