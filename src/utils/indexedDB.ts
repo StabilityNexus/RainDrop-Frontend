@@ -132,7 +132,7 @@ class IndexedDBManager {
     const store = transaction.objectStore('vaults');
     const index = store.index('isFavorite');
     return new Promise((resolve, reject) => {
-      const request = index.getAll(true);
+      const request = index.getAll(IDBKeyRange.only(true));
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });

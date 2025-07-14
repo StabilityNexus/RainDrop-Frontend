@@ -1,14 +1,9 @@
 const nextConfig = {
   output: 'export',
-  trailingSlash: true,
+  distDir: 'out',
   images: {
-    unoptimized: true
-  },
-  experimental: {
-    esmExternals: 'loose'
-  },
-  basePath: process.env.NODE_ENV === 'production' ? '/RainDrop-Frontend' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/RainDrop-Frontend/' : '',
+      unoptimized: true,
+  }
 };
 
 export default nextConfig;
