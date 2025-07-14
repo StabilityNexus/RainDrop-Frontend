@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { Sparkles, ArrowRight, PlusCircle } from 'lucide-react';
 import React from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function HomePage() {
       </div>
 
       {/* Header */}
-      <header className="w-full max-w-5xl mt-24 mb-12 z-10">
+      <header className="w-full mt-24 mb-12 z-10 px-4">
         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <div className="relative">
             {/* Glowing background effect */}
@@ -83,7 +84,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 z-10">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8 px-4 z-10">
         {/* My Rooms Box */}
         <div className="relative group">
           {/* Glowing background effect */}
@@ -107,12 +108,12 @@ export default function HomePage() {
               <p className="text-blue-300 font-futuristic mb-6 text-center px-4">
                 View and manage your existing vaults. See your vaults and manage your vaults.
               </p>
-              <button
+              <Button
                 onClick={() => router.push('/myVaults')}
-                className="mt-auto w-full bg-[#3673F5] text-white px-6 py-3 rounded-lg hover:bg-[#3673F5]/80 transition-colors font-futuristic font-bold shadow-neon flex items-center justify-center gap-2"
+                className="mt-auto w-full h-12 bg-gradient-to-r from-[#3673F5] to-[#7ecbff] text-white px-6 py-3 rounded-lg hover:from-[#3673F5]/80 hover:to-[#7ecbff]/80 transition-colors font-futuristic font-bold shadow-neon gap-2"
               >
                 View My Vaults <ArrowRight size={20} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -140,12 +141,12 @@ export default function HomePage() {
               <p className="text-emerald-300 font-futuristic mb-6 text-center px-4">
                 Start a new Vault for your project. Manage your vaults and drop tokens. Let users stake and unstake tokens.
               </p>
-              <button
+              <Button
                 onClick={() => router.push('/createVault')}
-                className="mt-auto w-full bg-gradient-to-r from-emerald-500 to-green-400 text-white px-6 py-3 rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold shadow-neon flex items-center justify-center gap-2"
+                className="mt-auto h-12 w-full bg-gradient-to-r from-emerald-500 to-green-400 text-white px-6 py-3 rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold shadow-neon flex items-center justify-center gap-2"
               >
                 Create New Room <PlusCircle size={20} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
