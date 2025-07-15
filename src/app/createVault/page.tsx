@@ -24,6 +24,7 @@ export default function CreateVault() {
   });
   const [showInfo, setShowInfo] = useState<{ [key: string]: boolean }>({});
   const [underlyingSymbol, setUnderlyingSymbol] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
 
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -55,6 +56,16 @@ export default function CreateVault() {
 
   const handleChange = (key: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+    
+    // Validate vault creator fee
+    if (key === 'vaultCreatorFee') {
+      const fee = parseFloat(value);
+      if (value && (isNaN(fee) || fee < 0 || fee > 100)) {
+        setValidationError('Vault Creator Fee must be between 0-100%');
+      } else {
+        setValidationError('');
+      }
+    }
   };
 
   const toggleInfo = (fieldId: string) => {
@@ -67,11 +78,24 @@ export default function CreateVault() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConnected) {
-      console.warn('Please connect your wallet');
+      setValidationError('Please connect your wallet');
       return;
     }
 
+    // Validate fee is between 0-100%
+    const fee = parseFloat(formData.vaultCreatorFee);
+    if (isNaN(fee) || fee < 0 || fee > 100) {
+      setValidationError('Vault Creator Fee must be between 0-100%');
+      return;
+    }
+
+    // Clear any previous errors
+    setValidationError('');
+
     try {
+      // Convert percentage to basis points (multiply by 100)
+      const feeInBasisPoints = Math.round(fee * 100);
+      
       await writeContract({
         address: RaindropFractoryAddress[534351],
         abi: RAINDROP_FACTORY_ABI,
@@ -81,12 +105,13 @@ export default function CreateVault() {
           formData.symbol,
           formData.coin as `0x${string}`,
           formData.creatorAddress as `0x${string}`,
-          BigInt(formData.vaultCreatorFee),
+          BigInt(feeInBasisPoints),
           BigInt(0), // Default treasury fee set to 0
         ],
       });
     } catch (err) {
       console.error('Transaction error:', err);
+      setValidationError('Transaction failed. Please try again.');
     }
   };
 
@@ -231,11 +256,18 @@ export default function CreateVault() {
                   <Input
                     id="vaultCreatorFee"
                     type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
                     value={formData.vaultCreatorFee}
                     onChange={e => handleChange('vaultCreatorFee', e.target.value)}
-                    placeholder="100 (for 1%)"
+                    placeholder="4 (for 4%)"
                     required
-                    className="relative w-full bg-[#1a2332] border-purple-500/30 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-futuristic h-12 pr-10"
+                    className={`relative w-full bg-[#1a2332] text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:border-transparent font-futuristic h-12 pr-10 ${
+                      validationError && formData.vaultCreatorFee ? 
+                      'border-red-500/50 focus:ring-red-500' : 
+                      'border-purple-500/30 focus:ring-purple-500'
+                    }`}
                   />
                   <button
                     type="button"
@@ -246,15 +278,36 @@ export default function CreateVault() {
                   </button>
                 </div>
                 {showInfo.vaultCreatorFee && (
-                  <p className="text-sm text-white -mt-1">Enter 100 for 1%, 250 for 2.5%, etc.</p>
+                  <p className="text-sm text-white -mt-1">
+                    Enter a percentage between 0-100%. For example: 4 for 4%, 2.5 for 2.5%.
+                    <br />
+                    <span className="text-gray-400">Note: Treasury fee will be automatically calculated as max(3%, 10% of creator fee)</span>
+                  </p>
+                )}
+                
+                {/* Fee Preview */}
+                {formData.vaultCreatorFee && !validationError && (
+                  <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-center">
+                    <p className="text-purple-300 font-futuristic text-sm">
+                      Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% = 
+                      <span className="font-bold text-white"> Total {(parseFloat(formData.vaultCreatorFee) + Math.max(3, parseFloat(formData.vaultCreatorFee) * 0.1)).toFixed(2)}%</span>
+                    </p>
+                  </div>
                 )}
               </div>
+
+              {/* Validation Error */}
+              {validationError && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-center">
+                  <p className="text-red-400 font-futuristic text-sm">{validationError}</p>
+                </div>
+              )}
 
               <div className="relative mt-8 flex justify-center">
                 <Button
                   type="submit"
-                  className="relative w-72 h-10 bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-bold text-base rounded-xl transition-all font-futuristic flex items-center justify-center gap-2"
-                  disabled={isLoading}
+                  className="relative w-72 h-10 bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-bold text-base rounded-xl transition-all font-futuristic flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !!validationError}
                 >
                   {isLoading ? (
                     <>

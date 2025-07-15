@@ -17,6 +17,7 @@ import { RAINDROP_ABI } from '@/utils/contractABI/Raindrop';
 import { ERC20Abi } from '@/utils/contractABI/ERC20';
 import { indexedDBManager, VaultData } from '@/utils/indexedDB';
 import { VaultCard } from '@/components/VaultCard';
+import ChainSelector from '@/components/ChainSelector';
 
 
 
@@ -25,6 +26,7 @@ export default function Explorer() {
   const { address, isConnected } = useAccount();
   const [vaults, setVaults] = useState<VaultData[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedChain, setSelectedChain] = useState('scroll-sepolia');
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,6 @@ export default function Explorer() {
 
   const loadVaults = async () => {
     try {
-      setLoading(true);
       setError(null);
       await indexedDBManager.init();
       
@@ -44,20 +45,22 @@ export default function Explorer() {
       
       if (cachedVaults.length > 0) {
         setVaults(cachedVaults);
-        setLoading(false);
+        setLoading(false); // Hide loading since we have cached data
         
         // Check if data is stale (older than 5 minutes)
         const hasStaleData = cachedVaults.some(vault => 
-          indexedDBManager.isDataStale(vault.lastUpdated)
+          Date.now() - vault.lastUpdated > 5 * 60 * 1000
         );
         
         if (!hasStaleData) {
           return; // Data is fresh, no need to sync
         }
-      }
-      
-      // If no cached data or data is stale, fetch from blockchain
-      if (isConnected) {
+        
+        // If data is stale, sync in background without showing loading
+        await syncVaults();
+      } else {
+        // No cached data, show loading and sync from blockchain
+        setLoading(true);
         await syncVaults();
       }
     } catch (err) {
@@ -69,16 +72,32 @@ export default function Explorer() {
   };
 
   const syncVaults = async () => {
-    if (!isConnected) {
-      setError('Please connect your wallet to sync');
-      return;
-    }
-
     try {
       setSyncing(true);
       setError(null);
       const publicClient = getPublicClient(config);
       const factoryAddress = RaindropFractoryAddress[534351] as `0x${string}`;
+
+      // Get user's favorite vaults from contract if connected
+      let userFavorites: Set<string> = new Set();
+      if (isConnected && address) {
+        try {
+          const userVaultHistory = await publicClient.readContract({
+            address: factoryAddress,
+            abi: RAINDROP_FACTORY_ABI,
+            functionName: 'getUserVaultHistorySlice',
+            args: [address, BigInt(0), BigInt(999)], // Get up to 1000 vaults
+          }) as `0x${string}`[];
+          
+          userFavorites = new Set(userVaultHistory.map(addr => addr.toLowerCase()));
+          
+          // Sync favorites with IndexedDB
+          await indexedDBManager.syncUserFavoritesFromContract(address, userVaultHistory);
+        } catch (err) {
+          console.error('Error fetching user favorites:', err);
+          // Continue with empty favorites if this fails
+        }
+      }
 
       // Get total vault count
       const vaultId = await publicClient.readContract({
@@ -154,9 +173,8 @@ export default function Explorer() {
                 }),
               ]) as [bigint, bigint, string];
 
-              // Check if this vault is favorited
-              const existingVault = await indexedDBManager.getVault(vaultInfo.vaultAddress);
-              const isFavorite = existingVault?.isFavorite || false;
+              // Check if this vault is favorited by the user from the contract
+              const isFavorite = userFavorites.has(vaultInfo.vaultAddress.toLowerCase());
 
               const vaultData: VaultData = {
                 address: vaultInfo.vaultAddress,
@@ -275,7 +293,7 @@ export default function Explorer() {
                   <div className="flex items-center gap-3">
                     <Button
                       onClick={syncVaults}
-                      disabled={syncing || !isConnected}
+                      disabled={syncing}
                       className="bg-gradient-to-r from-emerald-500 to-green-400 text-white rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg px-4 py-2.5 flex items-center gap-2"
                     >
                       <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
@@ -307,19 +325,11 @@ export default function Explorer() {
                   </div>
 
                   {/* Network Filter */}
-                  <div className="relative w-[200px] pr-8">
-                    <select
-                      className="w-full px-8 py-2 bg-white/5 border border-white/10 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-sm text-gray-200 cursor-pointer"
-                      defaultValue="scroll-sepolia"
-                    >
-                      <option value="all" className="bg-[#1a1a1a]">All Networks</option>
-                      <option value="scroll-sepolia" className="bg-[#1a1a1a]">Scroll Sepolia</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-11 flex items-center pointer-events-none">
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+                  <div className="w-[200px] pr-8">
+                    <ChainSelector
+                      selectedChain={selectedChain}
+                      onChainSelect={setSelectedChain}
+                    />
                   </div>
                 </div>
               </div>
@@ -381,6 +391,7 @@ export default function Explorer() {
                   key={vault.address} 
                   vault={vault} 
                   onFavoriteToggle={handleFavoriteToggle}
+                  showLastUpdated={true}
                 />
               ))}
             </div>

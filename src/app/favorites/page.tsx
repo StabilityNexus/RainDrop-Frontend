@@ -8,6 +8,8 @@ import { formatUnits } from 'viem';
 import { RefreshCw, Heart, ArrowLeft } from 'lucide-react';
 
 import { config } from '@/utils/config';
+import { RaindropFractoryAddress } from '@/utils/contractAddress';
+import { RAINDROP_FACTORY_ABI } from '@/utils/contractABI/RaindropFactory';
 import { RAINDROP_ABI } from '@/utils/contractABI/Raindrop';
 import { ERC20Abi } from '@/utils/contractABI/ERC20';
 import { Button } from '@/components/ui/button';
@@ -25,15 +27,40 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     loadFavorites();
-  }, []);
+  }, [userAddress, isConnected]);
 
   const loadFavorites = async () => {
+    if (!isConnected || !userAddress) {
+      // If user is not connected, show empty favorites
+      setFavorites([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       await indexedDBManager.init();
-      const favoriteVaults = await indexedDBManager.getFavoriteVaults();
-      setFavorites(favoriteVaults);
+      
+      // First, try to load from IndexedDB
+      const cachedFavorites = await indexedDBManager.getFavoriteVaults();
+      
+      if (cachedFavorites.length > 0) {
+        setFavorites(cachedFavorites);
+        setLoading(false);
+        
+        // Check if data is stale (older than 5 minutes)
+        const hasStaleData = cachedFavorites.some(vault => 
+          Date.now() - vault.lastUpdated > 5 * 60 * 1000
+        );
+        
+        if (!hasStaleData) {
+          return; // Data is fresh, no need to sync
+        }
+      }
+      
+      // If no cached data or data is stale, fetch from blockchain
+      await syncFavorites();
     } catch (err) {
       console.error('Error loading favorites:', err);
       setError('Failed to load favorite vaults');
@@ -43,108 +70,146 @@ export default function FavoritesPage() {
   };
 
   const syncFavorites = async () => {
-    if (!isConnected) {
-      setError('Please connect your wallet to sync');
-      return;
-    }
-
+    if (!isConnected || !userAddress) return;
+    
     try {
       setSyncing(true);
       setError(null);
+      
       const client = getPublicClient(config);
-      
-      // Get current favorites from IndexedDB
-      const currentFavorites = await indexedDBManager.getFavoriteVaults();
-      
-      // Sync each favorite vault with fresh blockchain data
-      const syncPromises = currentFavorites.map(async (vault) => {
-        try {
-          const [name, symbol, vaultCreator, vaultCreatorFee, treasuryFee, coin] = await Promise.all([
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'name',
-            }),
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'symbol',
-            }),
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'vaultCreator',
-            }),
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'vaultCreatorFee',
-            }),
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'treasuryFee',
-            }),
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: RAINDROP_ABI,
-              functionName: 'coin',
-            }),
-          ]);
+      const factoryAddress = RaindropFractoryAddress[534351] as `0x${string}`;
 
-          const [totalSupply, totalStaked, coinSymbol] = await Promise.all([
-            client.readContract({
-              address: vault.address as `0x${string}`,
-              abi: ERC20Abi,
-              functionName: 'totalSupply',
-            }),
-            client.readContract({
-              address: coin as `0x${string}`,
-              abi: ERC20Abi,
-              functionName: 'balanceOf',
-              args: [vault.address as `0x${string}`],
-            }),
-            client.readContract({
-              address: coin as `0x${string}`,
-              abi: ERC20Abi,
-              functionName: 'symbol',
-            }),
-          ]);
+      // Get user's vault history from contract
+      const userVaultHistory = await client.readContract({
+        address: factoryAddress,
+        abi: RAINDROP_FACTORY_ABI,
+        functionName: 'getUserVaultHistorySlice',
+        args: [userAddress, BigInt(0), BigInt(999)], // Get up to 1000 vaults
+      }) as `0x${string}`[];
 
-          const updatedVault: VaultData = {
-            address: vault.address,
-            name: name as string,
-            symbol: symbol as string,
-            coin: coin as string,
-            coinSymbol: coinSymbol as string,
-            totalSupply: formatUnits(totalSupply as bigint, 18),
-            totalStaked: formatUnits(totalStaked as bigint, 18),
-            vaultCreator: vaultCreator as string,
-            vaultCreatorFee: Number(vaultCreatorFee),
-            treasuryFee: Number(treasuryFee),
-            lastUpdated: Date.now(),
-            isFavorite: true,
-          };
+      if (userVaultHistory.length === 0) {
+        setFavorites([]);
+        return;
+      }
 
-          await indexedDBManager.saveVault(updatedVault);
-          return updatedVault;
-        } catch (err) {
-          console.error(`Error syncing vault ${vault.address}:`, err);
-          return vault; // Return original vault if sync fails
-        }
-      });
+      // Get detailed vault information for each favorited vault
+      const favoriteVaults = await Promise.all(
+        userVaultHistory.map(async (vaultAddress) => {
+          try {
+            // Fetch fresh data from blockchain
+            const [name, symbol, vaultCreator, vaultCreatorFee, treasuryFee, coin] = await Promise.all([
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'name',
+              }),
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'symbol',
+              }),
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'vaultCreator',
+              }),
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'vaultCreatorFee',
+              }),
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'treasuryFee',
+              }),
+              client.readContract({
+                address: vaultAddress,
+                abi: RAINDROP_ABI,
+                functionName: 'coin',
+              }),
+            ]);
 
-      const syncedFavorites = await Promise.all(syncPromises);
-      setFavorites(syncedFavorites);
+            const [totalSupply, totalStaked, coinSymbol] = await Promise.all([
+              client.readContract({
+                address: vaultAddress,
+                abi: ERC20Abi,
+                functionName: 'totalSupply',
+              }),
+              client.readContract({
+                address: coin as `0x${string}`,
+                abi: ERC20Abi,
+                functionName: 'balanceOf',
+                args: [vaultAddress],
+              }),
+              client.readContract({
+                address: coin as `0x${string}`,
+                abi: ERC20Abi,
+                functionName: 'symbol',
+              }),
+            ]);
+
+            const vaultData: VaultData = {
+              address: vaultAddress,
+              name: name as string,
+              symbol: symbol as string,
+              coin: coin as `0x${string}`,
+              coinSymbol: coinSymbol as string,
+              totalSupply: formatUnits(totalSupply as bigint, 18),
+              totalStaked: formatUnits(totalStaked as bigint, 18),
+              vaultCreator: vaultCreator as string,
+              vaultCreatorFee: Number(vaultCreatorFee),
+              treasuryFee: Number(treasuryFee),
+              lastUpdated: Date.now(),
+              isFavorite: true,
+            };
+
+            // Save to IndexedDB
+            await indexedDBManager.saveVault(vaultData);
+            return vaultData;
+          } catch (err) {
+            console.error(`Error loading vault ${vaultAddress}:`, err);
+            return null;
+          }
+        })
+      );
+
+      const validVaults = favoriteVaults.filter((vault): vault is VaultData => vault !== null);
+      setFavorites(validVaults);
     } catch (err) {
       console.error('Error syncing favorites:', err);
-      setError('Failed to sync favorite vaults');
+      setError('Failed to sync favorite vaults from blockchain');
     } finally {
       setSyncing(false);
     }
   };
 
-
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
+        {/* Scanline overlay */}
+        <div className="pointer-events-none fixed inset-0 z-0" style={{ background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)' }} />
+        
+        <div className="relative z-10 text-center">
+          <div className="relative inline-block">
+            <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-indigo-500/30 rounded-2xl"></div>
+            <div className="relative bg-[#232c3b] rounded-2xl px-12 py-12 border-2 border-purple-500/50">
+              <div className="mb-6">
+                <div className="relative inline-block">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full opacity-20"></div>
+                  <div className="relative bg-gradient-to-r from-purple-500 to-pink-400 w-16 h-16 rounded-full flex items-center justify-center border-2 border-purple-400">
+                    <Heart className="text-white" size={32} />
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-white font-futuristic mb-4">Connect Wallet Required</h3>
+              <p className="text-gray-300 font-futuristic mb-6">Connect your wallet to view your favorite vaults</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -222,7 +287,7 @@ export default function FavoritesPage() {
 
           <Button
             onClick={syncFavorites}
-            disabled={syncing || !isConnected}
+            disabled={syncing}
             className="bg-gradient-to-r from-emerald-500 to-green-400 text-white rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg px-4 py-2 flex items-center gap-2"
           >
             <RefreshCw size={20} className={syncing ? 'animate-spin' : ''} />
@@ -271,7 +336,7 @@ export default function FavoritesPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {favorites.map((vault) => (
               <VaultCard
                 key={vault.address}

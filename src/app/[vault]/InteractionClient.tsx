@@ -774,16 +774,17 @@ export default function VaultDetails() {
               return (
                 <div
                   key={drop.id}
-                  className={`relative group cursor-pointer transition-all hover:scale-105`}
+                  className="relative group cursor-pointer transform transition-all duration-300 hover:scale-105"
                   onClick={() => { setSelectedDrop(drop); setModalOpen(true); }}
                 >
-                  <div className={`relative bg-[#232c3b] rounded-2xl p-6 border-2 transition-all ${
-                    isExpired ? 'border-red-400/60' : 'border-emerald-400/60'
-                  }`}>
+                  {/* Background glow to match VaultCard */}
+                  <div className="absolute -inset-0.5 bg-white opacity-5 blur rounded-xl group-hover:opacity-10 transition duration-300"></div>
+
+                  {/* Card content styled like VaultCard */}
+                  <div className="relative bg-[#1a1a1a] rounded-xl border border-gray-800 p-6 shadow-[0_8px_16px_rgba(0,0,0,0.4)] group-hover:shadow-[0_16px_32px_rgba(255,255,255,0.1)] transition-all duration-300">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full border-2 ${isExpired ? 'bg-red-400 border-red-300' : 'bg-emerald-400 border-emerald-300'}`} />
-                        <div className="font-futuristic text-lg text-white">Drop #{drop.id}</div>
+                        <div className="font-futuristic text-lg text-white">Drop {drop.id + 1}</div>
                       </div>
                       <div className={`px-3 py-1 rounded-full text-xs font-futuristic ${
                         isExpired ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
@@ -866,7 +867,12 @@ export default function VaultDetails() {
       {/* Drop Modal */}
       {modalOpen && selectedDrop && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="bg-[#232c3b] rounded-2xl p-8 max-w-md w-full relative border-2 border-[#3673F5] shadow-lg mx-4">
+          <div className="relative group max-w-md w-full mx-4">
+            {/* Background glow to match VaultCard */}
+            <div className="absolute -inset-0.5 bg-white opacity-5 blur rounded-xl group-hover:opacity-10 transition duration-300"></div>
+            
+            {/* Modal content styled like VaultCard */}
+            <div className="relative bg-[#1a1a1a] rounded-xl border border-gray-800 p-8 shadow-[0_8px_16px_rgba(0,0,0,0.4)] group-hover:shadow-[0_16px_32px_rgba(255,255,255,0.1)] transition-all duration-300">
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"
               onClick={() => setModalOpen(false)}
@@ -876,7 +882,7 @@ export default function VaultDetails() {
               <div className="flex items-center gap-3 mb-4">
                 <Gift className="text-purple-400" size={24} />
                 <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#7ecbff] via-emerald-400 to-[#3673F5] font-futuristic">
-                  Drop #{selectedDrop.id}
+                  Drop {selectedDrop.id + 1}
                 </h3>
               </div>
               
@@ -995,6 +1001,7 @@ export default function VaultDetails() {
                 );
               }
             })()}
+            </div>
           </div>
         </div>
       )}
