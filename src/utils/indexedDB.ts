@@ -46,9 +46,15 @@ class IndexedDBManager {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
+      request.onsuccess = async () => {
         this.db = request.result;
-        resolve();
+        try {
+          // Migrate existing vault data to ensure isFavorite is properly set
+          await this.migrateVaultData();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       };
 
       request.onupgradeneeded = (event) => {
@@ -97,10 +103,38 @@ class IndexedDBManager {
     const transaction = db.transaction(['vaults'], 'readwrite');
     const store = transaction.objectStore('vaults');
     vault.lastUpdated = Date.now();
+    // Ensure isFavorite is always a boolean
+    if (vault.isFavorite === undefined) {
+      vault.isFavorite = false;
+    }
     await new Promise((resolve, reject) => {
       const request = store.put(vault);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  async saveVaults(vaults: VaultData[]): Promise<void> {
+    const db = await this.ensureDB();
+    const transaction = db.transaction(['vaults'], 'readwrite');
+    const store = transaction.objectStore('vaults');
+    
+    return new Promise((resolve, reject) => {
+      const promises = vaults.map(vault => {
+        vault.lastUpdated = Date.now();
+        // Ensure isFavorite is always a boolean
+        if (vault.isFavorite === undefined) {
+          vault.isFavorite = false;
+        }
+        
+        return new Promise<void>((resolveVault, rejectVault) => {
+          const request = store.put(vault);
+          request.onsuccess = () => resolveVault();
+          request.onerror = () => rejectVault(request.error);
+        });
+      });
+      
+      Promise.all(promises).then(() => resolve()).catch(reject);
     });
   }
 
@@ -130,10 +164,14 @@ class IndexedDBManager {
     const db = await this.ensureDB();
     const transaction = db.transaction(['vaults'], 'readonly');
     const store = transaction.objectStore('vaults');
-    const index = store.index('isFavorite');
     return new Promise((resolve, reject) => {
-      const request = index.getAll(IDBKeyRange.only(true));
-      request.onsuccess = () => resolve(request.result);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const allVaults = request.result;
+        // Filter for vaults that are explicitly marked as favorite
+        const favoriteVaults = allVaults.filter(vault => vault.isFavorite === true);
+        resolve(favoriteVaults);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -247,9 +285,90 @@ class IndexedDBManager {
     });
   }
 
+  async getUserCreatedVaults(userAddress: string): Promise<VaultData[]> {
+    const db = await this.ensureDB();
+    const transaction = db.transaction(['vaults'], 'readonly');
+    const store = transaction.objectStore('vaults');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const allVaults = request.result;
+        // Filter for vaults created by this user
+        const userCreatedVaults = allVaults.filter(vault => 
+          vault.vaultCreator.toLowerCase() === userAddress.toLowerCase()
+        );
+        resolve(userCreatedVaults);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Utility methods
   async isDataStale(lastUpdated: number, maxAgeMs: number = 5 * 60 * 1000): Promise<boolean> {
     return Date.now() - lastUpdated > maxAgeMs;
+  }
+
+  async syncUserFavoritesFromContract(userAddress: string, favoriteVaultAddresses: string[]): Promise<void> {
+    const db = await this.ensureDB();
+    const transaction = db.transaction(['vaults'], 'readwrite');
+    const store = transaction.objectStore('vaults');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const allVaults = request.result;
+        const favoriteSet = new Set(favoriteVaultAddresses.map(addr => addr.toLowerCase()));
+        
+        const updatePromises = allVaults.map(vault => {
+          const isFavorite = favoriteSet.has(vault.address.toLowerCase());
+          
+          // Only update if the favorite status has changed
+          if (vault.isFavorite !== isFavorite) {
+            vault.isFavorite = isFavorite;
+            
+            return new Promise<void>((resolveUpdate, rejectUpdate) => {
+              const updateRequest = store.put(vault);
+              updateRequest.onsuccess = () => resolveUpdate();
+              updateRequest.onerror = () => rejectUpdate(updateRequest.error);
+            });
+          }
+          
+          return Promise.resolve();
+        });
+        
+        Promise.all(updatePromises).then(() => resolve()).catch(reject);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async migrateVaultData(): Promise<void> {
+    const db = await this.ensureDB();
+    const transaction = db.transaction(['vaults'], 'readwrite');
+    const store = transaction.objectStore('vaults');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const vaults = request.result;
+        const updatePromises = vaults.map(vault => {
+          // Ensure isFavorite is always a boolean
+          if (vault.isFavorite === undefined) {
+            vault.isFavorite = false;
+          }
+          
+          return new Promise<void>((resolveUpdate, rejectUpdate) => {
+            const updateRequest = store.put(vault);
+            updateRequest.onsuccess = () => resolveUpdate();
+            updateRequest.onerror = () => rejectUpdate(updateRequest.error);
+          });
+        });
+        
+        Promise.all(updatePromises).then(() => resolve()).catch(reject);
+      };
+      request.onerror = () => reject(request.error);
+    });
   }
 
   async clearAllData(): Promise<void> {

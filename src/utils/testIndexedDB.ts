@@ -1,65 +1,81 @@
-import { indexedDBManager, VaultData } from './indexedDB';
+import { indexedDBManager } from './indexedDB';
 
-export async function testIndexedDB() {
+async function testIndexedDB() {
   try {
-    console.log('Testing IndexedDB...');
+    console.log('Testing IndexedDB Manager...');
     
     // Initialize the database
     await indexedDBManager.init();
-    console.log('✓ Database initialized');
-    
-    // Test data
-    const testVault: VaultData = {
-      address: '0x1234567890abcdef1234567890abcdef12345678',
+    console.log('✓ Database initialized successfully');
+
+    // Test data migration
+    await indexedDBManager.migrateVaultData();
+    console.log('✓ Data migration completed');
+
+    // Test vault operations
+    const testVault = {
+      address: '0x1234567890123456789012345678901234567890',
       name: 'Test Vault',
-      symbol: 'TEST',
-      coin: '0xabcdef1234567890abcdef1234567890abcdef12',
-      coinSymbol: 'TKN',
-      totalSupply: '1000.0',
-      totalStaked: '500.0',
-      vaultCreator: '0x9876543210fedcba9876543210fedcba98765432',
+      symbol: 'TV',
+      coin: '0x0987654321098765432109876543210987654321',
+      coinSymbol: 'TEST',
+      totalSupply: '1000000',
+      totalStaked: '500000',
+      vaultCreator: '0x1111111111111111111111111111111111111111',
       vaultCreatorFee: 100,
       treasuryFee: 50,
       lastUpdated: Date.now(),
       isFavorite: false,
     };
-    
-    // Test saving vault
+
+    // Save vault
     await indexedDBManager.saveVault(testVault);
-    console.log('✓ Vault saved');
-    
-    // Test retrieving vault
+    console.log('✓ Vault saved successfully');
+
+    // Get vault
     const retrievedVault = await indexedDBManager.getVault(testVault.address);
-    console.log('✓ Vault retrieved:', retrievedVault);
-    
-    // Test toggling favorite
-    const isFavorite = await indexedDBManager.toggleFavorite(testVault.address);
-    console.log('✓ Favorite toggled:', isFavorite);
-    
-    // Test getting favorites
-    const favorites = await indexedDBManager.getFavoriteVaults();
-    console.log('✓ Favorites retrieved:', favorites);
-    
+    console.log('✓ Vault retrieved successfully:', retrievedVault);
+
+    // Test favorite toggle
+    const favoriteStatus = await indexedDBManager.toggleFavorite(testVault.address);
+    console.log('✓ Favorite toggled successfully:', favoriteStatus);
+
     // Test getting all vaults
     const allVaults = await indexedDBManager.getAllVaults();
-    console.log('✓ All vaults retrieved:', allVaults);
-    
-    // Clean up
+    console.log('✓ All vaults retrieved:', allVaults.length);
+
+    // Test getting favorite vaults
+    const favoriteVaults = await indexedDBManager.getFavoriteVaults();
+    console.log('✓ Favorite vaults retrieved:', favoriteVaults.length);
+
+    // Test contract favorites sync
+    const userAddress = '0x1111111111111111111111111111111111111111';
+    const favoriteAddresses = [testVault.address];
+    await indexedDBManager.syncUserFavoritesFromContract(userAddress, favoriteAddresses);
+    console.log('✓ Contract favorites synced successfully');
+
+    // Verify sync worked
+    const syncedVault = await indexedDBManager.getVault(testVault.address);
+    console.log('✓ Synced vault favorite status:', syncedVault?.isFavorite);
+
+    // Test data staleness check
+    const isStale = await indexedDBManager.isDataStale(Date.now() - 10 * 60 * 1000); // 10 minutes ago
+    console.log('✓ Data staleness check:', isStale);
+
+    // Clear test data
     await indexedDBManager.clearAllData();
     console.log('✓ Test data cleared');
-    
-    console.log('✓ All IndexedDB tests passed!');
-    return true;
+
+    console.log('\n🎉 All tests passed successfully!');
   } catch (error) {
-    console.error('✗ IndexedDB test failed:', error);
-    return false;
+    console.error('❌ Test failed:', error);
   }
 }
 
-// Auto-run test in development
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  // Run test after a short delay to ensure DOM is ready
-  setTimeout(() => {
-    testIndexedDB();
-  }, 1000);
+// Run tests if this file is executed directly
+if (typeof window !== 'undefined') {
+  testIndexedDB();
+}
+
+export { testIndexedDB }; 
 } 
