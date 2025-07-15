@@ -77,5 +77,4 @@ if (typeof window !== 'undefined') {
   testIndexedDB();
 }
 
-export { testIndexedDB }; 
-} 
+export { testIndexedDB };
