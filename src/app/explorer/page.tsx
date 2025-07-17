@@ -9,7 +9,7 @@ import { config } from '@/utils/config';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight, PlusCircle, Search, TrendingUp, Users, Coins, Shield, Target, Activity, Vault, User2, RefreshCw } from 'lucide-react';
+import { Sparkles, ArrowRight, PlusCircle, Search, TrendingUp, Users, Coins, Shield, Target, Activity, Vault, User2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { RaindropFractoryAddress } from '@/utils/contractAddress';
 import { RAINDROP_FACTORY_ABI } from '@/utils/contractABI/RaindropFactory';
@@ -30,10 +30,17 @@ export default function Explorer() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     loadVaults();
   }, []);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const loadVaults = async () => {
     try {
@@ -231,6 +238,10 @@ export default function Explorer() {
     v.symbol.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentVaults = filtered.slice(startIndex, endIndex);
 
 
   // Update loading skeleton to match new layout
@@ -294,14 +305,14 @@ export default function Explorer() {
                     <Button
                       onClick={syncVaults}
                       disabled={syncing}
-                      className="bg-gradient-to-r from-emerald-500 to-green-400 text-white rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg px-4 py-2.5 flex items-center gap-2"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
                       <span>{syncing ? 'Syncing...' : 'Sync'}</span>
                     </Button>
                     <Button
                       onClick={() => router.push('/createVault')}
-                      className="bg-[#4B96FF] hover:bg-[#4B96FF]/90 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-[#4B96FF]/25"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
                     >
                       <PlusCircle className="h-5 w-5" />
                       Create Vault
@@ -377,8 +388,9 @@ export default function Explorer() {
                   </p>
                   <Button
                     onClick={() => router.push('/createVault')}
-                    className="bg-gradient-to-r from-emerald-500 to-green-400 text-white rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg px-6 py-3"
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
                   >
+                    <PlusCircle className="h-5 w-5" />
                     Create First Vault
                   </Button>
                 </div>
@@ -386,7 +398,7 @@ export default function Explorer() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-              {filtered.map((vault) => (
+              {currentVaults.map((vault) => (
                 <VaultCard 
                   key={vault.address} 
                   vault={vault} 
@@ -397,6 +409,52 @@ export default function Explorer() {
             </div>
           )}
         </div>
+
+          {/* Pagination Controls */}
+          {filtered.length > itemsPerPage && (
+            <div className="flex items-center justify-center mt-12 gap-2">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-2 mx-4">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <Button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                      page === currentPage
+                        ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                        : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Pagination Info */}
+          {filtered.length > 0 && (
+            <div className="text-center mt-6 text-sm text-gray-400">
+              Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} vaults
+            </div>
+          )}
       </div>
     </main>
   );

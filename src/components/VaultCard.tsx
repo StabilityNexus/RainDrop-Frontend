@@ -71,9 +71,8 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
       // Update local state and IndexedDB after successful contract call
       setIsFavorite(newFavoriteStatus);
       
-      // Update the vault in IndexedDB with the new favorite status
-      const updatedVault = { ...vault, isFavorite: newFavoriteStatus };
-      await indexedDBManager.saveVault(updatedVault);
+      // Update the vault in IndexedDB with the new favorite status using user-specific method
+      await indexedDBManager.toggleFavorite(vault.address, userAddress);
       
       // Notify parent component if callback provided
       if (onFavoriteToggle) {
@@ -162,7 +161,7 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
             {/* Total Fee Box */}
             <div className="bg-[#1E1E1E] rounded-lg px-3 py-2 flex items-center justify-between">
               <p className="text-md text-gray-300">Total Fee</p>
-              <p className="text-white text-md font-medium">{((vault.vaultCreatorFee + vault.treasuryFee) / 100).toFixed(2)}%</p>
+              <p className="text-white text-md font-medium">{((vault.vaultCreatorFee + vault.treasuryFee) / 1000).toFixed(2)}%</p>
             </div>
           </div>
 

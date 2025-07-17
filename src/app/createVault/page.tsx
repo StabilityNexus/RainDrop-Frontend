@@ -93,8 +93,8 @@ export default function CreateVault() {
     setValidationError('');
 
     try {
-      // Convert percentage to basis points (multiply by 100)
-      const feeInBasisPoints = Math.round(fee * 100);
+      // Convert percentage to contract units (multiply by 1000) since DENOMINATOR = 100000
+      const feeInBasisPoints = Math.round(fee * 1000);
       
       await writeContract({
         address: RaindropFractoryAddress[534351],
@@ -129,23 +129,28 @@ export default function CreateVault() {
         <div className="relative bg-[#1E1E1E] rounded-2xl border border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.5)] group-hover:shadow-[0_20px_48px_rgba(255,255,255,0.2)] transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] rounded-2xl animate-gradient-x"></div>
           <div className="relative bg-[#1E1E1E] m-[1px] rounded-2xl p-8">
-            {/* Back to Explorer Button */}
-            <Button
-              onClick={() => router.push('/explorer')}
-              className="absolute top-4 left-4 bg-transparent hover:bg-gray-800/50 text-white font-futuristic flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-700/50 transition-all duration-300 hover:scale-105 hover:border-white/50 group z-10"
-            >
-              <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
-              Back to Explorer
-            </Button>
-
-            <div className="flex flex-col items-center mb-8 mt-8">
-              <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2 text-center">
-                Create Vault
-              </h1>
-              <div className="relative mx-auto w-64 h-1">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-400 to-transparent rounded-full"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
+            {/* Header with Back Button and Title */}
+            <div className="flex items-center justify-between mb-8 mt-4">
+              <Button
+                onClick={() => router.push('/explorer')}
+                className="bg-transparent hover:bg-gray-800/50 text-white font-futuristic flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-700/50 transition-all duration-300 hover:scale-105 hover:border-white/50 group"
+              >
+                <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
+                Back to Explorer
+              </Button>
+              
+              <div className="flex flex-col items-center">
+                <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2 text-center">
+                  Create Vault
+                </h1>
+                <div className="relative mx-auto w-64 h-1">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-400 to-transparent rounded-full"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
+                </div>
               </div>
+              
+              {/* Empty div for centering the title */}
+              <div className="w-[140px]"></div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -281,7 +286,7 @@ export default function CreateVault() {
                   <p className="text-sm text-white -mt-1">
                     Enter a percentage between 0-100%. For example: 4 for 4%, 2.5 for 2.5%.
                     <br />
-                    <span className="text-gray-400">Note: Treasury fee will be automatically calculated as max(3%, 10% of creator fee)</span>
+                    <span className="text-gray-400">Note: Treasury fee will be automatically calculated as max(0.3%, 10% of creator fee)</span>
                   </p>
                 )}
                 
@@ -289,8 +294,8 @@ export default function CreateVault() {
                 {formData.vaultCreatorFee && !validationError && (
                   <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-center">
                     <p className="text-purple-300 font-futuristic text-sm">
-                      Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% = 
-                      <span className="font-bold text-white"> Total {(parseFloat(formData.vaultCreatorFee) + Math.max(3, parseFloat(formData.vaultCreatorFee) * 0.1)).toFixed(2)}%</span>
+                      Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% = 
+                      <span className="font-bold text-white"> Total {(parseFloat(formData.vaultCreatorFee) + Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1)).toFixed(2)}%</span>
                     </p>
                   </div>
                 )}
@@ -306,7 +311,7 @@ export default function CreateVault() {
               <div className="relative mt-8 flex justify-center">
                 <Button
                   type="submit"
-                  className="relative w-72 h-10 bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-bold text-base rounded-xl transition-all font-futuristic flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative w-72 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed font-futuristic"
                   disabled={isLoading || !!validationError}
                 >
                   {isLoading ? (
