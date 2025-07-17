@@ -38,7 +38,7 @@ interface UserVaultData {
 
 class IndexedDBManager {
   private dbName = 'RainDropDB';
-  private dbVersion = 1;
+  private dbVersion = 2;
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -51,6 +51,8 @@ class IndexedDBManager {
         try {
           // Migrate existing vault data to ensure isFavorite is properly set
           await this.migrateVaultData();
+          // Migrate to user-specific favorites if needed
+          await this.migrateToUserFavorites();
           resolve();
         } catch (error) {
           reject(error);
@@ -82,9 +84,11 @@ class IndexedDBManager {
           userStore.createIndex('lastUpdated', 'lastUpdated', { unique: false });
         }
 
-        // Favorites store (simple key-value for favorite vault addresses)
-        if (!db.objectStoreNames.contains('favorites')) {
-          db.createObjectStore('favorites', { keyPath: 'vaultAddress' });
+        // User favorites store (user-specific favorite vault addresses)
+        if (!db.objectStoreNames.contains('userFavorites')) {
+          const userFavoritesStore = db.createObjectStore('userFavorites', { keyPath: ['userAddress', 'vaultAddress'] });
+          userFavoritesStore.createIndex('userAddress', 'userAddress', { unique: false });
+          userFavoritesStore.createIndex('vaultAddress', 'vaultAddress', { unique: false });
         }
       };
     });
@@ -160,7 +164,7 @@ class IndexedDBManager {
     });
   }
 
-  async getFavoriteVaults(): Promise<VaultData[]> {
+  async getFavoriteVaults(userAddress?: string): Promise<VaultData[]> {
     const db = await this.ensureDB();
     const transaction = db.transaction(['vaults'], 'readonly');
     const store = transaction.objectStore('vaults');
@@ -176,23 +180,128 @@ class IndexedDBManager {
     });
   }
 
-  async toggleFavorite(vaultAddress: string): Promise<boolean> {
+  async getUserFavoriteVaults(userAddress: string): Promise<VaultData[]> {
     const db = await this.ensureDB();
-    const transaction = db.transaction(['vaults'], 'readwrite');
-    const store = transaction.objectStore('vaults');
+    
+    // Check if userFavorites store exists
+    if (!db.objectStoreNames.contains('userFavorites')) {
+      // Fallback to old method if userFavorites store doesn't exist
+      return this.getFavoriteVaults();
+    }
+    
+    const transaction = db.transaction(['vaults', 'userFavorites'], 'readonly');
+    const vaultStore = transaction.objectStore('vaults');
+    const userFavoritesStore = transaction.objectStore('userFavorites');
+    const userFavoritesIndex = userFavoritesStore.index('userAddress');
     
     return new Promise((resolve, reject) => {
-      const getRequest = store.get(vaultAddress);
+      // First get all user's favorite vault addresses
+      const favoritesRequest = userFavoritesIndex.getAll(userAddress);
+      favoritesRequest.onsuccess = () => {
+        const userFavorites = favoritesRequest.result;
+        const favoriteAddresses = new Set(userFavorites.map(fav => fav.vaultAddress.toLowerCase()));
+        
+        // Then get all vaults and filter for user's favorites
+        const vaultsRequest = vaultStore.getAll();
+        vaultsRequest.onsuccess = () => {
+          const allVaults = vaultsRequest.result;
+          const favoriteVaults = allVaults.filter(vault => 
+            favoriteAddresses.has(vault.address.toLowerCase())
+          );
+          resolve(favoriteVaults);
+        };
+        vaultsRequest.onerror = () => reject(vaultsRequest.error);
+      };
+      favoritesRequest.onerror = () => reject(favoritesRequest.error);
+    });
+  }
+
+  async toggleFavorite(vaultAddress: string, userAddress?: string): Promise<boolean> {
+    if (!userAddress) {
+      // Fallback to old method for backward compatibility
+      const db = await this.ensureDB();
+      const transaction = db.transaction(['vaults'], 'readwrite');
+      const store = transaction.objectStore('vaults');
+      
+      return new Promise((resolve, reject) => {
+        const getRequest = store.get(vaultAddress);
+        getRequest.onsuccess = () => {
+          const vault = getRequest.result;
+          if (vault) {
+            vault.isFavorite = !vault.isFavorite;
+            const putRequest = store.put(vault);
+            putRequest.onsuccess = () => resolve(vault.isFavorite);
+            putRequest.onerror = () => reject(putRequest.error);
+          } else {
+            resolve(false);
+          }
+        };
+        getRequest.onerror = () => reject(getRequest.error);
+      });
+    }
+
+    // Check if userFavorites store exists
+    const db = await this.ensureDB();
+    if (!db.objectStoreNames.contains('userFavorites')) {
+      // Fallback to old method if userFavorites store doesn't exist
+      return this.toggleFavorite(vaultAddress);
+    }
+
+    // New user-specific method
+    const transaction = db.transaction(['vaults', 'userFavorites'], 'readwrite');
+    const vaultStore = transaction.objectStore('vaults');
+    const userFavoritesStore = transaction.objectStore('userFavorites');
+    
+    return new Promise((resolve, reject) => {
+      // Check if this vault is already favorited by this user
+      const getRequest = userFavoritesStore.get([userAddress, vaultAddress]);
       getRequest.onsuccess = () => {
-        const vault = getRequest.result;
-        if (vault) {
-          vault.isFavorite = !vault.isFavorite;
-          const putRequest = store.put(vault);
-          putRequest.onsuccess = () => resolve(vault.isFavorite);
-          putRequest.onerror = () => reject(putRequest.error);
+        const existingFavorite = getRequest.result;
+        
+        if (existingFavorite) {
+          // Remove from favorites
+          const deleteRequest = userFavoritesStore.delete([userAddress, vaultAddress]);
+          deleteRequest.onsuccess = () => {
+            // Update vault's isFavorite status
+            const vaultGetRequest = vaultStore.get(vaultAddress);
+            vaultGetRequest.onsuccess = () => {
+              const vault = vaultGetRequest.result;
+              if (vault) {
+                vault.isFavorite = false;
+                const vaultPutRequest = vaultStore.put(vault);
+                vaultPutRequest.onsuccess = () => resolve(false);
+                vaultPutRequest.onerror = () => reject(vaultPutRequest.error);
+              } else {
+                resolve(false);
+              }
+            };
+            vaultGetRequest.onerror = () => reject(vaultGetRequest.error);
+          };
+          deleteRequest.onerror = () => reject(deleteRequest.error);
         } else {
-          // If vault doesn't exist, we can't favorite it
-          resolve(false);
+          // Add to favorites
+          const addRequest = userFavoritesStore.add({
+            userAddress,
+            vaultAddress,
+            addedAt: Date.now()
+          });
+          addRequest.onsuccess = () => {
+            // Update vault's isFavorite status
+            const vaultGetRequest = vaultStore.get(vaultAddress);
+            vaultGetRequest.onsuccess = () => {
+              const vault = vaultGetRequest.result;
+              if (vault) {
+                vault.isFavorite = true;
+                const vaultPutRequest = vaultStore.put(vault);
+                vaultPutRequest.onsuccess = () => resolve(true);
+                vaultPutRequest.onerror = () => reject(vaultPutRequest.error);
+              } else {
+                resolve(true);
+              }
+            };
+            vaultGetRequest.onerror = () => reject(vaultGetRequest.error);
+          };
+          addRequest.onerror = () => reject(addRequest.error);
         }
       };
       getRequest.onerror = () => reject(getRequest.error);
@@ -371,9 +480,63 @@ class IndexedDBManager {
     });
   }
 
+  async migrateToUserFavorites(): Promise<void> {
+    const db = await this.ensureDB();
+    
+    // Check if userFavorites store exists
+    if (!db.objectStoreNames.contains('userFavorites')) {
+      console.log('userFavorites store does not exist, skipping migration');
+      return;
+    }
+
+    try {
+      // Get all vaults first
+      const vaults = await this.getAllVaults();
+      const favoriteVaults = vaults.filter(vault => vault.isFavorite === true);
+      
+      if (favoriteVaults.length === 0) {
+        return;
+      }
+
+      // For now, we'll migrate existing favorites to a default user
+      // In a real app, you might want to prompt the user to associate these with their wallet
+      const defaultUserAddress = '0x0000000000000000000000000000000000000000';
+      
+      // Add each favorite to the userFavorites store
+      for (const vault of favoriteVaults) {
+        try {
+          await this.addUserFavorite(defaultUserAddress, vault.address);
+        } catch (err) {
+          // If it already exists, that's fine
+          if (err instanceof Error && err.name !== 'ConstraintError') {
+            console.error('Error migrating favorite:', err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error during migration:', err);
+    }
+  }
+
+  private async addUserFavorite(userAddress: string, vaultAddress: string): Promise<void> {
+    const db = await this.ensureDB();
+    const transaction = db.transaction(['userFavorites'], 'readwrite');
+    const store = transaction.objectStore('userFavorites');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.add({
+        userAddress,
+        vaultAddress,
+        addedAt: Date.now()
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async clearAllData(): Promise<void> {
     const db = await this.ensureDB();
-    const transaction = db.transaction(['vaults', 'drops', 'userVaultData'], 'readwrite');
+    const transaction = db.transaction(['vaults', 'drops', 'userVaultData', 'userFavorites'], 'readwrite');
     
     const promises = [
       new Promise<void>((resolve, reject) => {
@@ -388,6 +551,11 @@ class IndexedDBManager {
       }),
       new Promise<void>((resolve, reject) => {
         const request = transaction.objectStore('userVaultData').clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      }),
+      new Promise<void>((resolve, reject) => {
+        const request = transaction.objectStore('userFavorites').clear();
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       })
