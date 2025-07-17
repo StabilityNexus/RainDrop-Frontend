@@ -568,7 +568,7 @@ export default function VaultDetails() {
             <div className="relative bg-[#232c3b] rounded-2xl overflow-hidden border-2 border-emerald-500">
               <div className="absolute inset-0 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] animate-gradient-x"></div>
               <div className="relative bg-[#232c3b] m-[2px] rounded-2xl p-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="relative group">
                     <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-blue-500/50 group-hover:border-blue-400">
                       <p className="text-sm text-[#7ecbff] mb-3 font-futuristic font-bold">Total Value Locked</p>
@@ -589,7 +589,15 @@ export default function VaultDetails() {
                     <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-purple-500/50 group-hover:border-purple-400">
                       <p className="text-sm text-purple-400 mb-3 font-futuristic font-bold">Creator Fee</p>
                       <p className="text-2xl font-semibold text-white font-futuristic">
-                        {vault?.vaultCreatorFee ? Number(vault.vaultCreatorFee) : 0}%
+                        {vault?.vaultCreatorFee ? (Number(vault.vaultCreatorFee) / 1000).toFixed(2) : '0'}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="relative group">
+                    <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-[#3673F5]/50 group-hover:border-[#3673F5]">
+                      <p className="text-sm text-[#3673F5] mb-3 font-futuristic font-bold">Treasury Fee</p>
+                      <p className="text-2xl font-semibold text-white font-futuristic">
+                        {vault?.treasuryFee ? (Number(vault.treasuryFee) / 1000).toFixed(2) : '0'}%
                       </p>
                     </div>
                   </div>

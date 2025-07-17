@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { getPublicClient } from '@wagmi/core';
 import { formatUnits } from 'viem';
-import { RefreshCw, Heart, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Heart, ArrowLeft, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 
 import { config } from '@/utils/config';
 import { RaindropFractoryAddress } from '@/utils/contractAddress';
@@ -24,6 +24,8 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     loadFavorites();
@@ -43,7 +45,13 @@ export default function FavoritesPage() {
       await indexedDBManager.init();
       
       // First, try to load from IndexedDB
-      const cachedFavorites = await indexedDBManager.getFavoriteVaults();
+      let cachedFavorites: VaultData[] = [];
+      try {
+        cachedFavorites = await indexedDBManager.getUserFavoriteVaults(userAddress);
+      } catch (err) {
+        console.log('User favorites store not ready yet, will sync from blockchain');
+        // If userFavorites store doesn't exist yet, we'll sync from blockchain
+      }
       
       if (cachedFavorites.length > 0) {
         setFavorites(cachedFavorites);
@@ -184,6 +192,17 @@ export default function FavoritesPage() {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(favorites.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentFavorites = favorites.slice(startIndex, endIndex);
+
+  // Reset to page 1 when favorites change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [favorites.length]);
+
   if (!isConnected) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
@@ -288,7 +307,7 @@ export default function FavoritesPage() {
           <Button
             onClick={syncFavorites}
             disabled={syncing}
-            className="bg-gradient-to-r from-emerald-500 to-green-400 text-white rounded-lg hover:from-emerald-600 hover:to-green-500 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg px-4 py-2 flex items-center gap-2"
+            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw size={20} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? 'Syncing...' : 'Sync'}</span>
@@ -328,29 +347,78 @@ export default function FavoritesPage() {
                 <p className="text-gray-300 font-futuristic mb-6">Star vaults to add them to your favorites!</p>
                 <Button
                   onClick={() => router.push('/explorer')}
-                  className="bg-gradient-to-r from-purple-500 to-pink-400 text-white rounded-lg hover:from-purple-600 hover:to-pink-500 transition-colors font-futuristic font-bold border-2 border-purple-400 shadow-lg px-6 py-3"
+                  className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
                 >
+                  <PlusCircle className="h-5 w-5" />
                   Explore Vaults
                 </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-            {favorites.map((vault) => (
-              <VaultCard
-                key={vault.address}
-                vault={vault}
-                onFavoriteToggle={(vaultAddress, isFavorite) => {
-                  if (!isFavorite) {
-                    // If unfavorited, remove from favorites list
-                    setFavorites(prev => prev.filter(v => v.address !== vaultAddress));
-                  }
-                }}
-                showLastUpdated={true}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+              {currentFavorites.map((vault) => (
+                <VaultCard
+                  key={vault.address}
+                  vault={vault}
+                  onFavoriteToggle={(vaultAddress, isFavorite) => {
+                    if (!isFavorite) {
+                      // If unfavorited, remove from favorites list
+                      setFavorites(prev => prev.filter(v => v.address !== vaultAddress));
+                    }
+                  }}
+                  showLastUpdated={true}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {favorites.length > itemsPerPage && (
+              <div className="flex items-center justify-center mt-12 gap-2">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-2 mx-4">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                        page === currentPage
+                          ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                          : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Pagination Info */}
+            {favorites.length > 0 && (
+              <div className="text-center mt-6 text-sm text-gray-400">
+                Showing {startIndex + 1}-{Math.min(endIndex, favorites.length)} of {favorites.length} favorite vaults
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -8,7 +8,7 @@ import { config } from '@/utils/config';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Sparkles, ArrowRight, PlusCircle, Coins, Shield, TrendingUp, Users, Activity, Target, Wallet, Vault, User2, Search, RefreshCw } from 'lucide-react';
+import { Sparkles, ArrowRight, PlusCircle, Coins, Shield, TrendingUp, Users, Activity, Target, Wallet, Vault, User2, Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { RaindropFractoryAddress } from '@/utils/contractAddress';
 import { RAINDROP_FACTORY_ABI } from '@/utils/contractABI/RaindropFactory';
@@ -98,7 +98,7 @@ const VaultCard = ({ vault }: { vault: VaultData }) => {
             {/* Total Fee Box */}
             <div className="bg-[#1E1E1E] rounded-lg px-3 py-2 flex items-center justify-between">
               <p className="text-md text-bold text-purple-400">Total Fee</p>
-              <p className="text-white text-md font-medium">{((vault.vaultCreatorFee + vault.treasuryFee) / 100).toFixed(2)}%</p>
+              <p className="text-white text-md font-medium">{((vault.vaultCreatorFee + vault.treasuryFee) / 1000).toFixed(2)}%</p>
             </div>
           </div>
 
@@ -134,6 +134,8 @@ export default function MyVaults() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedChain, setSelectedChain] = useState('scroll-sepolia');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     loadVaults();
@@ -317,6 +319,17 @@ export default function MyVaults() {
     vault.symbol.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredVaults.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentVaults = filteredVaults.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   // Show connect wallet message if not connected
   if (!isConnected) {
     return (
@@ -433,9 +446,6 @@ export default function MyVaults() {
                 {/* Title and Create Button Row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] rounded-xl opacity-80"></div>
-                    </div>
                     <div className="text-center">
                       <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
                         My Vaults
@@ -448,15 +458,16 @@ export default function MyVaults() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
-                      disabled
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50"
+                      onClick={syncVaults}
+                      disabled={syncing || !isConnected}
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <RefreshCw className="h-4 w-4" />
-                      Sync
+                      <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                      {syncing ? 'Syncing...' : 'Sync'}
                     </Button>
                     <Button
                       onClick={() => router.push('/createVault')}
-                      className="bg-[#4B96FF] hover:bg-[#4B96FF]/90 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-[#4B96FF]/25"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
                     >
                       <PlusCircle className="h-5 w-5" />
                       Create Vault
@@ -540,9 +551,55 @@ export default function MyVaults() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-              {filteredVaults.map((vault) => (
+              {currentVaults.map((vault) => (
                 <VaultCard key={vault.address} vault={vault} />
               ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {filteredVaults.length > itemsPerPage && (
+            <div className="flex items-center justify-center mt-12 gap-2">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-2 mx-4">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <Button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                      page === currentPage
+                        ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                        : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Pagination Info */}
+          {filteredVaults.length > 0 && (
+            <div className="text-center mt-6 text-sm text-gray-400">
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredVaults.length)} of {filteredVaults.length} vaults
             </div>
           )}
         </div>
