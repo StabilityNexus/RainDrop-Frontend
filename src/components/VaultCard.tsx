@@ -149,15 +149,6 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
               </div>
             </div>
 
-            {/* Total Supply Box */}
-            <div className="bg-[#1E1E1E] rounded-lg px-3 py-2 flex items-center justify-between">
-              <p className="text-md text-purple-400">Supply</p>
-              <div className="flex items-center gap-1.5">
-                <p className="text-white text-md font-medium">{formatBalance(vault.totalSupply)}</p>
-                <span className="text-gray-400">{vault.symbol}</span>
-              </div>
-            </div>
-
             {/* Total Fee Box */}
             <div className="bg-[#1E1E1E] rounded-lg px-3 py-2 flex items-center justify-between">
               <p className="text-md text-gray-300">Total Fee</p>

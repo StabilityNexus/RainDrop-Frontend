@@ -73,7 +73,7 @@ export function Header() {
           {/* Logo Section with left padding */}
           <div className="flex-1 pl-8 relative z-10">
             <Link href='/' className='flex items-center gap-3 group w-fit'>
-              <span className="text-2xl md:text-3xl font-extrabold font-futuristic bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent tracking-widest drop-shadow-2xl group-hover:from-gray-50 group-hover:via-white group-hover:to-gray-200 transition-all duration-300">
+              <span className="text-2xl md:text-3xl font-extrabold font-futuristic bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff] bg-clip-text text-transparent tracking-widest drop-shadow-2xl group-hover:from-gray-50 group-hover:via-white group-hover:to-gray-200 transition-all duration-300">
                 Raindrop
               </span>
             </Link>
