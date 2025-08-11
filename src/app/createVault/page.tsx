@@ -20,7 +20,7 @@ export default function CreateVault() {
     symbol: '',
     coin: '',
     creatorAddress: '',
-    vaultCreatorFee: '',
+    vaultCreatorFee: '0',
   });
   const [showInfo, setShowInfo] = useState<{ [key: string]: boolean }>({});
   const [underlyingSymbol, setUnderlyingSymbol] = useState<string>('');
@@ -50,7 +50,7 @@ export default function CreateVault() {
   useEffect(() => {
     if (tokenSymbol && typeof tokenSymbol === 'string' && tokenSymbol !== underlyingSymbol) {
       setUnderlyingSymbol(tokenSymbol);
-      setFormData(prev => ({ ...prev, symbol: `h${tokenSymbol}` }));
+      setFormData(prev => ({ ...prev, symbol: `r${tokenSymbol}` }));
     }
   }, [tokenSymbol, underlyingSymbol]);
 
@@ -96,6 +96,8 @@ export default function CreateVault() {
       // Convert percentage to contract units (multiply by 1000) since DENOMINATOR = 100000
       const feeInBasisPoints = Math.round(fee * 1000);
       
+      const treasuryFeeInBasisPoints = Math.max(300, Math.round(feeInBasisPoints / 10));
+      
       await writeContract({
         address: RaindropFractoryAddress[534351],
         abi: RAINDROP_FACTORY_ABI,
@@ -106,7 +108,7 @@ export default function CreateVault() {
           formData.coin as `0x${string}`,
           formData.creatorAddress as `0x${string}`,
           BigInt(feeInBasisPoints),
-          BigInt(0), // Default treasury fee set to 0
+          BigInt(treasuryFeeInBasisPoints), // Properly calculated treasury fee
         ],
       });
     } catch (err) {
@@ -200,7 +202,7 @@ export default function CreateVault() {
                   </button>
                 </div>
                 {showInfo.coin && (
-                  <p className="text-sm text-white -mt-1">The token contract address that will be staked in this vault</p>
+                  <p className="text-sm text-white -mt-1">The contract address of the token that will be staked in this vault</p>
                 )}
               </div>
 
@@ -225,7 +227,7 @@ export default function CreateVault() {
                   </button>
                 </div>
                 {showInfo.symbol && (
-                  <p className="text-sm text-white -mt-1">Auto-filled with "h" prefix. A short identifier for your vault token (e.g. hBTC, hETH)</p>
+                  <p className="text-sm text-white -mt-1">Auto-filled with "r" prefix. A short identifier for your vault token (e.g. rBTC, hETH)</p>
                 )}
               </div>
 
@@ -256,7 +258,7 @@ export default function CreateVault() {
 
               {/* Vault Creator Fee */}
               <div className="space-y-3">
-                <label htmlFor="vaultCreatorFee" className="text-purple-300 font-medium font-futuristic text-sm">Vault Creator Fee (%)</label>
+                <label htmlFor="vaultCreatorFee" className="text-emerald-300 font-medium font-futuristic text-sm">Vault Creator Fee</label>
                 <div className="relative">
                   <Input
                     id="vaultCreatorFee"
@@ -266,34 +268,33 @@ export default function CreateVault() {
                     step="0.01"
                     value={formData.vaultCreatorFee}
                     onChange={e => handleChange('vaultCreatorFee', e.target.value)}
-                    placeholder="4 (for 4%)"
+                    placeholder="0"
                     required
-                    className={`relative w-full bg-[#1a2332] text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:border-transparent font-futuristic h-12 pr-10 ${
+                    className={`relative w-full bg-[#1a2332] text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:border-transparent font-futuristic h-12 pr-16 ${
                       validationError && formData.vaultCreatorFee ? 
                       'border-red-500/50 focus:ring-red-500' : 
-                      'border-purple-500/30 focus:ring-purple-500'
+                      'border-emerald-500/30 focus:ring-emerald-500'
                     }`}
                   />
+                  <span className="absolute right-12 top-1/2 -translate-y-1/2 text-emerald-300 font-futuristic text-sm">%</span>
                   <button
                     type="button"
                     onClick={() => toggleInfo('vaultCreatorFee')}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
-                    <Info className="w-5 h-5 text-purple-300" />
+                    <Info className="w-5 h-5 text-emerald-400" />
                   </button>
                 </div>
                 {showInfo.vaultCreatorFee && (
                   <p className="text-sm text-white -mt-1">
-                    Enter a percentage between 0-100%. For example: 4 for 4%, 2.5 for 2.5%.
-                    <br />
-                    <span className="text-gray-400">Note: Treasury fee will be automatically calculated as max(0.3%, 10% of creator fee)</span>
+                    Percentage fees that will be deducted from every reward paid into this vault and sent to the creator address
                   </p>
                 )}
                 
                 {/* Fee Preview */}
                 {formData.vaultCreatorFee && !validationError && (
-                  <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3 text-center">
-                    <p className="text-purple-300 font-futuristic text-sm">
+                  <div className="bg-gradient-to-r from-gray-500/20 via-[#3673F5]/20 to-emerald-500/20 border border-gray-500/30 rounded-lg p-3 text-center">
+                    <p className="text-gray-300 font-futuristic text-sm">
                       Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% = 
                       <span className="font-bold text-white"> Total {(parseFloat(formData.vaultCreatorFee) + Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1)).toFixed(2)}%</span>
                     </p>
@@ -311,7 +312,7 @@ export default function CreateVault() {
               <div className="relative mt-8 flex justify-center">
                 <Button
                   type="submit"
-                  className="relative w-72 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed font-futuristic"
+                  className="relative w-72 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff] font-medium px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 hover:border-emerald-400/50 shadow-lg hover:shadow-emerald-400/20 disabled:opacity-50 disabled:cursor-not-allowed font-futuristic group"
                   disabled={isLoading || !!validationError}
                 >
                   {isLoading ? (

@@ -161,12 +161,7 @@ export default function Explorer() {
                 }),
               ]) as [string, bigint, bigint];
 
-              const [totalSupply, totalStaked, coinSymbol] = await Promise.all([
-                publicClient.readContract({
-                  address: vaultInfo.vaultAddress,
-                  abi: ERC20Abi,
-                  functionName: 'totalSupply',
-                }),
+              const [totalStaked, coinSymbol] = await Promise.all([
                 publicClient.readContract({
                   address: vaultInfo.coin,
                   abi: ERC20Abi,
@@ -178,7 +173,7 @@ export default function Explorer() {
                   abi: ERC20Abi,
                   functionName: 'symbol',
                 }),
-              ]) as [bigint, bigint, string];
+              ]) as [bigint, string];
 
               // Check if this vault is favorited by the user from the contract
               const isFavorite = userFavorites.has(vaultInfo.vaultAddress.toLowerCase());
@@ -189,7 +184,7 @@ export default function Explorer() {
                 symbol: vaultInfo.symbol,
                 coin: vaultInfo.coin,
                 coinSymbol,
-                totalSupply: formatUnits(totalSupply, 18),
+                totalSupply: '0', // Not needed for explorer, set to default
                 totalStaked: formatUnits(totalStaked, 18),
                 vaultCreator,
                 vaultCreatorFee: Number(vaultCreatorFee),
@@ -328,10 +323,10 @@ export default function Explorer() {
                       <Search className="h-4 w-4 text-gray-400" />
                     </div>
                     <Input
-                      placeholder="Search by token name or symbol..."
+                      placeholder="Search by token name or symbol"
                       value={search}
                       onChange={e => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-sm"
+                      className="w-[300px] pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-sm"
                     />
                   </div>
 

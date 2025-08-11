@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { getPublicClient } from '@wagmi/core';
-import { parseEther, formatUnits, parseUnits } from 'viem';
+import { parseEther, formatUnits, parseUnits, isAddress } from 'viem';
 import { format } from 'date-fns';
 
 import { config } from '@/utils/config';
@@ -12,7 +12,7 @@ import { RAINDROP_ABI } from '@/utils/contractABI/Raindrop';
 import { ERC20Abi } from '@/utils/contractABI/ERC20';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Coins, TrendingUp, Users, Shield, Calendar, Gift, Clock, CheckCircle, XCircle, Target, Sparkles } from 'lucide-react';
+import { TrendingUp, Users, Shield, Calendar, Gift, Clock, CheckCircle, XCircle, Target, Sparkles } from 'lucide-react';
 
 interface VaultDetailsState {
   name: string;
@@ -27,7 +27,9 @@ interface Drop {
   amount: bigint;
   amountRemaining: bigint;
   balanceStaked: bigint;
-  deadline: bigint;
+  deadlineDateMidnight: bigint;
+  deadlineTimeSeconds: bigint;
+  deadline: bigint; // computed combined deadline
   recoverer: `0x${string}`;
   tokenSymbol: string;
   tokenDecimals: number;
@@ -62,7 +64,10 @@ export default function VaultDetails() {
   const [unstakeAmt, setUnstakeAmt] = useState('');
   const [dropAmt, setDropAmt] = useState('');
   const [dropToken, setDropToken] = useState('');
+  const [dropTokenSymbol, setDropTokenSymbol] = useState('');
   const [dropDate, setDropDate] = useState('');
+  const [dropTime, setDropTime] = useState('');
+  const [useUTC, setUseUTC] = useState(true);
 
   const [drops, setDrops] = useState<Drop[]>([]);
   const [loadingDrops, setLoadingDrops] = useState(false);
@@ -163,6 +168,26 @@ export default function VaultDetails() {
     });
   }, [coinAddress, userAddress, vaultAddress]);
 
+  // Fetch drop token symbol when drop token address changes
+  useEffect(() => {
+    if (!dropToken || !isAddress(dropToken)) {
+      setDropTokenSymbol('');
+      return;
+    }
+
+    const client = getPublicClient(config);
+    client.readContract({
+      address: dropToken as `0x${string}`,
+      abi: ERC20Abi,
+      functionName: 'symbol',
+    }).then((symbol) => {
+      setDropTokenSymbol(symbol as string);
+    }).catch((err) => {
+      console.error('Error fetching drop token symbol:', err);
+      setDropTokenSymbol('');
+    });
+  }, [dropToken]);
+
   // write hooks
   const { writeContract: stakeWrite, data: stakeHash } = useWriteContract();
   const { writeContract: unstakeWrite, data: unstakeHash } = useWriteContract();
@@ -171,14 +196,56 @@ export default function VaultDetails() {
   const { writeContract: recoverWrite, data: recoverHash } = useWriteContract();
   const { writeContract: approveWrite, data: approveHash } = useWriteContract();
 
-  const { isLoading: isStaking } = useWaitForTransactionReceipt({ hash: stakeHash });
-  const { isLoading: isUnstaking } = useWaitForTransactionReceipt({ hash: unstakeHash });
-  const { isLoading: isDropping } = useWaitForTransactionReceipt({ hash: dropHash });
-  const { isLoading: isClaiming } = useWaitForTransactionReceipt({ hash: claimHash });
-  const { isLoading: isRecovering } = useWaitForTransactionReceipt({ hash: recoverHash });
+  const { isLoading: isStaking, isSuccess: stakeSuccess } = useWaitForTransactionReceipt({ hash: stakeHash });
+  const { isLoading: isUnstaking, isSuccess: unstakeSuccess } = useWaitForTransactionReceipt({ hash: unstakeHash });
+  const { isLoading: isDropping, isSuccess: dropSuccess } = useWaitForTransactionReceipt({ hash: dropHash });
+  const { isLoading: isClaiming, isSuccess: claimSuccess } = useWaitForTransactionReceipt({ hash: claimHash });
+  const { isLoading: isRecovering, isSuccess: recoverSuccess } = useWaitForTransactionReceipt({ hash: recoverHash });
   const { isLoading: isApproving } = useWaitForTransactionReceipt({ hash: approveHash });
 
   // Utility functions
+  const refreshBalances = async () => {
+    if (!coinAddress || !userAddress || !vaultAddress) return;
+
+    const client = getPublicClient(config);
+    try {
+      const [coinBal, stakedBal, totStaked, counterstamp] = await Promise.all([
+        client.readContract({
+          address: coinAddress,
+          abi: ERC20Abi,
+          functionName: 'balanceOf',
+          args: [userAddress],
+        }),
+        client.readContract({
+          address: vaultAddress as `0x${string}`,
+          abi: ERC20Abi,
+          functionName: 'balanceOf',
+          args: [userAddress],
+        }),
+        client.readContract({
+          address: coinAddress,
+          abi: ERC20Abi,
+          functionName: 'balanceOf',
+          args: [vaultAddress as `0x${string}`],
+        }),
+        client.readContract({
+          address: vaultAddress as `0x${string}`,
+          abi: RAINDROP_ABI,
+          functionName: 'stakerCounterstamp',
+          args: [userAddress],
+        }),
+      ]);
+
+      setBalances({
+        coinBalance: formatUnits(coinBal as bigint, 18),
+        stakedBalance: formatUnits(stakedBal as bigint, 18),
+        totalStaked: formatUnits(totStaked as bigint, 18),
+      });
+      setUserStakerCounterstamp(Number(counterstamp));
+    } catch (e) {
+      console.error('Error refreshing balances:', e);
+    }
+  };
 
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
@@ -256,15 +323,36 @@ export default function VaultDetails() {
     if (!isConnected) {
       return setError('Connect wallet');
     }
-    if (!dropAmt || !dropToken || !dropDate) {
-      return setError('Fill all drop fields');
+    if (!dropAmt || !dropToken || !dropDate || !dropTime) {
+      return setError('Fill all drop fields including date and time');
     }
 
     try {
-      const selected = new Date(dropDate + 'T00:00:00');
+      // Combine date and time based on timezone selection
+      const selected = useUTC 
+        ? new Date(dropDate + 'T' + dropTime + ':00Z')
+        : new Date(dropDate + 'T' + dropTime + ':00');
+      
       const deadlineUnix = Math.floor(selected.getTime() / 1000);
       if (deadlineUnix < Math.floor(Date.now() / 1000)) {
-        return setError('Selected date must be in the future');
+        return setError('Selected date and time must be in the future');
+      }
+
+      // Calculate deadlineDateMidnight (start of the day in UTC)
+      const dateOnly = new Date(dropDate + 'T00:00:00Z');
+      const deadlineDateMidnight = Math.floor(dateOnly.getTime() / 1000);
+      
+      // Calculate deadlineTimeSeconds (seconds since midnight UTC)
+      const [hours, minutes] = dropTime.split(':').map(Number);
+      let deadlineTimeSeconds = hours * 3600 + minutes * 60;
+      
+      // If using local time, adjust for timezone offset
+      if (!useUTC) {
+        const localDate = new Date(dropDate + 'T' + dropTime + ':00');
+        const utcDate = new Date(localDate.getTime() + (localDate.getTimezoneOffset() * 60000));
+        const utcHours = utcDate.getUTCHours();
+        const utcMinutes = utcDate.getUTCMinutes();
+        deadlineTimeSeconds = utcHours * 3600 + utcMinutes * 60;
       }
 
       // Get token decimals first
@@ -299,7 +387,7 @@ export default function VaultDetails() {
           address: vaultAddress as `0x${string}`,
           abi: RAINDROP_ABI,
           functionName: 'drop',
-          args: [dropAmountWei, dropToken as `0x${string}`, BigInt(deadlineUnix)],
+          args: [dropAmountWei, dropToken as `0x${string}`, BigInt(deadlineDateMidnight), BigInt(deadlineTimeSeconds)],
         });
       }, 2000);
     } catch (e: any) {
@@ -383,10 +471,12 @@ export default function VaultDetails() {
                   amount,
                   amountRemaining,
                   balanceStaked,
-                  deadline,
+                  deadlineDateMidnight,
+                  deadlineTimeSeconds,
                   recoverer,
                 ] = dropRaw as [
                   `0x${string}`,
+                  bigint,
                   bigint,
                   bigint,
                   bigint,
@@ -422,13 +512,18 @@ export default function VaultDetails() {
                 const hasClaimedBool = hasUserClaimed as boolean;
                 const isEligible = claimableAmountBigInt > 0n && !hasClaimedBool;
 
+                // Compute combined deadline timestamp
+                const combinedDeadline = deadlineDateMidnight + deadlineTimeSeconds;
+
                 return {
                   id: i,
                   token,
                   amount,
                   amountRemaining,
                   balanceStaked,
-                  deadline,
+                  deadlineDateMidnight,
+                  deadlineTimeSeconds,
+                  deadline: combinedDeadline,
                   recoverer,
                   tokenSymbol,
                   tokenDecimals,
@@ -455,6 +550,28 @@ export default function VaultDetails() {
 
     fetchDrops();
   }, [vaultAddress, userAddress, userStakerCounterstamp, balances.stakedBalance, claimHash, recoverHash, dropHash]);
+
+  // Auto-refresh data after successful transactions
+  useEffect(() => {
+    if (stakeSuccess || unstakeSuccess || dropSuccess || claimSuccess || recoverSuccess) {
+      // Clear form inputs after successful operations
+      if (stakeSuccess) setStakeAmt('');
+      if (unstakeSuccess) setUnstakeAmt('');
+      if (dropSuccess) {
+        setDropAmt('');
+        setDropToken('');
+        setDropTokenSymbol('');
+        setDropDate('');
+        setDropTime('');
+        setUseUTC(true);
+      }
+      
+      // Refresh balances and drops
+      setTimeout(() => {
+        refreshBalances();
+      }, 2000); // Wait 2 seconds for blockchain to update
+    }
+  }, [stakeSuccess, unstakeSuccess, dropSuccess, claimSuccess, recoverSuccess]);
 
   if (loadingDetails) {
     return (
@@ -485,11 +602,11 @@ export default function VaultDetails() {
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {[
           ...[...Array(3)].map(() => ({
-            leftPercent: Math.random() * 49,
+            leftPercent: Math.random() * 50,
             color: 'green',
           })),
           ...[...Array(3)].map(() => ({
-            leftPercent: 50 + Math.random() * 49,
+            leftPercent: 50 + Math.random() * 50,
             color: 'blue',
           }))
         ].map((drop, i) => {
@@ -529,22 +646,13 @@ export default function VaultDetails() {
             </div>
           </div>
           
-          {/* Token Balances - Absolute positioned to top right */}
-          {isConnected && (
-            <div className="absolute top-0 right-0 flex gap-3">
-              {/* Coin Balance */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 px-3 py-2 min-w-[100px] hover:bg-white/15 transition-all">
-                <div className="text-xs text-gray-300 font-futuristic font-medium mb-1">{coinSymbol} balance</div>
-                <div className="text-sm font-bold text-white font-futuristic">{formatBalance(balances.coinBalance)}</div>
-              </div>
-              
-              {/* Staked Balance */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 px-3 py-2 min-w-[100px] hover:bg-white/15 transition-all">
-                <div className="text-xs text-gray-300 font-futuristic font-medium mb-1">{vault?.symbol} balance</div>
-                <div className="text-sm font-bold text-white font-futuristic">{formatBalance(balances.stakedBalance)}</div>
-              </div>
+          {/* Total Value Locked - Absolute positioned to top right */}
+          <div className="absolute top-0 right-0">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 px-4 py-3 min-w-[140px] hover:bg-white/15 transition-all">
+              <div className="text-xs text-[#7ecbff] font-futuristic font-medium mb-1">Total Value Locked</div>
+              <div className="text-lg font-bold text-white font-futuristic">{formatBalance(balances.totalStaked)} {coinSymbol}</div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Error Message */}
@@ -562,51 +670,6 @@ export default function VaultDetails() {
           </div>
         )}
 
-        {/* Vault Info */}
-        <div className="flex justify-center">
-          <div className="relative group max-w-6xl w-full">
-            <div className="relative bg-[#232c3b] rounded-2xl overflow-hidden border-2 border-emerald-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] animate-gradient-x"></div>
-              <div className="relative bg-[#232c3b] m-[2px] rounded-2xl p-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="relative group">
-                    <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-blue-500/50 group-hover:border-blue-400">
-                      <p className="text-sm text-[#7ecbff] mb-3 font-futuristic font-bold">Total Value Locked</p>
-                      <p className="text-2xl font-semibold text-white font-futuristic">
-                        {formatBalance(balances.totalStaked)} {coinSymbol}
-                      </p>
-                    </div>
-                  </div>
-                                    <div className="relative group">
-                    <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-emerald-500/50 group-hover:border-emerald-400">
-                      <p className="text-sm text-emerald-400 mb-3 font-futuristic font-bold">Total Supply</p>
-                      <p className="text-2xl font-semibold text-white font-futuristic">
-                        {parseFloat(totalSupply) === 0 ? '0' : `${formatBalance(totalSupply)} ${vault?.symbol}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="relative group">
-                    <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-purple-500/50 group-hover:border-purple-400">
-                      <p className="text-sm text-purple-400 mb-3 font-futuristic font-bold">Creator Fee</p>
-                      <p className="text-2xl font-semibold text-white font-futuristic">
-                        {vault?.vaultCreatorFee ? (Number(vault.vaultCreatorFee) / 1000).toFixed(2) : '0'}%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="relative group">
-                    <div className="relative bg-[#232c3b] rounded-xl p-6 text-center border-2 border-[#3673F5]/50 group-hover:border-[#3673F5]">
-                      <p className="text-sm text-[#3673F5] mb-3 font-futuristic font-bold">Treasury Fee</p>
-                      <p className="text-2xl font-semibold text-white font-futuristic">
-                        {vault?.treasuryFee ? (Number(vault.treasuryFee) / 1000).toFixed(2) : '0'}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="flex flex-col items-center space-y-6">
           {/* Stake and Unstake Row */}
@@ -621,6 +684,12 @@ export default function VaultDetails() {
                     <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-green-400 font-futuristic">Stake</h2>
                   </div>
                   <div className="space-y-4">
+                    {isConnected && (
+                      <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/30">
+                        <div className="text-xs text-emerald-400 font-futuristic font-medium mb-1">Available Balance</div>
+                        <div className="text-sm font-bold text-white font-futuristic">{formatBalance(balances.coinBalance)} {coinSymbol}</div>
+                      </div>
+                    )}
                     <Input
                       type="number"
                       value={stakeAmt}
@@ -650,6 +719,12 @@ export default function VaultDetails() {
                     <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7ecbff] font-futuristic">Unstake</h2>
                   </div>
                   <div className="space-y-4">
+                    {isConnected && (
+                      <div className="bg-[#3673F5]/10 rounded-lg p-3 border border-[#3673F5]/30">
+                        <div className="text-xs text-[#7ecbff] font-futuristic font-medium mb-1">Staked Balance</div>
+                        <div className="text-sm font-bold text-white font-futuristic">{formatBalance(balances.stakedBalance)} {vault?.symbol}</div>
+                      </div>
+                    )}
                     <Input
                       type="number"
                       value={unstakeAmt}
@@ -673,54 +748,132 @@ export default function VaultDetails() {
           {/* Drop Tokens */}
           <div className="w-full max-w-6xl">
             <div className="relative group">
-              <div className="relative bg-[#232c3b] rounded-2xl overflow-hidden border-2 border-purple-500">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500 animate-gradient-x"></div>
+              <div className="relative bg-[#232c3b] rounded-2xl overflow-hidden border-2 border-emerald-500">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] animate-gradient-x"></div>
                 <div className="relative bg-[#232c3b] m-[2px] rounded-2xl p-8">
                   <div className="flex items-center justify-center gap-3 mb-6">
-                    <Gift className="text-purple-400" size={24} />
-                    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-400 font-futuristic">Drop Tokens</h2>
+                    <Gift className="text-emerald-400" size={24} />
+                    <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-emerald-400 font-futuristic">Drop Tokens</h2>
                   </div>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-purple-400 mb-2 font-futuristic">
-                          Amount
-                        </label>
-                        <Input
-                          type="number"
-                          value={dropAmt}
-                          onChange={(e) => setDropAmt(e.target.value)}
-                          placeholder="Amount"
-                          className="bg-[#232c3b] border-2 border-purple-500 text-white h-12 font-futuristic"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-purple-400 mb-2 font-futuristic">
+                        <label className="block text-sm font-medium text-emerald-400 mb-2 font-futuristic">
                           Token Address
                         </label>
                         <Input
                           value={dropToken}
                           onChange={(e) => setDropToken(e.target.value)}
                           placeholder="Token address"
-                          className="bg-[#232c3b] border-2 border-purple-500 text-white h-12 font-futuristic"
+                          className="bg-[#232c3b] border-2 border-emerald-500 text-white h-12 font-futuristic"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-purple-400 mb-2 font-futuristic">
-                          Deadline
+                        <label className="block text-sm font-medium text-emerald-400 mb-2 font-futuristic">
+                          Amount
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={dropAmt}
+                            onChange={(e) => setDropAmt(e.target.value)}
+                            placeholder="Amount"
+                            className="bg-[#232c3b] border-2 border-emerald-500 text-white h-12 font-futuristic pr-16"
+                          />
+                          {dropTokenSymbol && (
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 font-futuristic text-sm">
+                              {dropTokenSymbol}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-emerald-400 mb-2 font-futuristic">
+                          Deadline Date
                         </label>
                         <Input
                           type="date"
                           value={dropDate}
                           onChange={(e) => setDropDate(e.target.value)}
-                          className="bg-[#232c3b] border-2 border-purple-500 text-white h-12 font-futuristic"
+                          className="bg-[#232c3b] border-2 border-emerald-500 text-white h-12 font-futuristic"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-emerald-400 font-futuristic">
+                            Deadline Time
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-futuristic ${!useUTC ? 'text-emerald-400' : 'text-gray-500'}`}>Local</span>
+                            <button
+                              type="button"
+                              onClick={() => setUseUTC(!useUTC)}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                                useUTC ? 'bg-emerald-600' : 'bg-gray-600'
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  useUTC ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
+                            <span className={`text-xs font-futuristic ${useUTC ? 'text-emerald-400' : 'text-gray-500'}`}>UTC</span>
+                          </div>
+                        </div>
+                        <Input
+                          type="time"
+                          value={dropTime}
+                          onChange={(e) => setDropTime(e.target.value)}
+                          className="bg-[#232c3b] border-2 border-emerald-500 text-white h-12 font-futuristic"
+                          step="60"
                         />
                       </div>
                     </div>
+                    
+                    {/* Fees Breakdown */}
+                    {dropAmt && !isNaN(parseFloat(dropAmt)) && vault && (
+                      <div className="bg-gradient-to-r from-[#3673F5]/10 via-emerald-500/10 to-[#7ecbff]/10 border border-emerald-500/30 rounded-lg p-4 space-y-3">
+                        <h3 className="text-emerald-400 font-futuristic font-bold text-sm mb-3">Fees Breakdown</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-300 font-futuristic text-sm">Total Amount:</span>
+                            <span className="text-white font-futuristic font-bold">{parseFloat(dropAmt).toLocaleString()} {dropTokenSymbol || 'tokens'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-emerald-400 font-futuristic text-sm">Creator Fee ({vault.vaultCreatorFee ? (Number(vault.vaultCreatorFee) / 1000).toFixed(2) : '0'}%):</span>
+                            <span className="text-emerald-400 font-futuristic font-bold">
+                              {vault.vaultCreatorFee ? (parseFloat(dropAmt) * Number(vault.vaultCreatorFee) / 100000).toLocaleString() : '0'} {dropTokenSymbol || 'tokens'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[#7ecbff] font-futuristic text-sm">Treasury Fee ({vault.treasuryFee ? (Number(vault.treasuryFee) / 1000).toFixed(2) : '0'}%):</span>
+                            <span className="text-[#7ecbff] font-futuristic font-bold">
+                              {vault.treasuryFee ? (parseFloat(dropAmt) * Number(vault.treasuryFee) / 100000).toLocaleString() : '0'} {dropTokenSymbol || 'tokens'}
+                            </span>
+                          </div>
+                          <div className="border-t border-gray-600 pt-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-white font-futuristic font-bold text-sm">Net Reward to Stakers:</span>
+                              <span className="text-white font-futuristic font-bold">
+                                {(() => {
+                                  const total = parseFloat(dropAmt);
+                                  const creatorFee = vault.vaultCreatorFee ? (total * Number(vault.vaultCreatorFee) / 100000) : 0;
+                                  const treasuryFee = vault.treasuryFee ? (total * Number(vault.treasuryFee) / 100000) : 0;
+                                  const netAmount = total - creatorFee - treasuryFee;
+                                  return `${netAmount.toLocaleString()} ${dropTokenSymbol || 'tokens'}`;
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <Button
                       onClick={handleDrop}
                       disabled={isDropping || isApproving}
-                      className="w-full h-12 bg-gradient-to-r from-purple-500 to-pink-400 text-white rounded-lg hover:from-purple-600 hover:to-pink-500 transition-colors font-futuristic font-bold border-2 border-purple-400 shadow-lg"
+                      className="w-full h-12 bg-gradient-to-r from-[#3673F5] to-emerald-500 text-white rounded-lg hover:from-[#3673F5]/80 hover:to-emerald-500/80 transition-colors font-futuristic font-bold border-2 border-emerald-400 shadow-lg"
                     >
                       {isApproving ? 'Approving…' : isDropping ? 'Dropping…' : 'Drop Tokens'}
                     </Button>
@@ -829,7 +982,7 @@ export default function VaultDetails() {
                       </div>
                       <div className="text-sm text-[#7ecbff] flex items-center gap-2">
                         <Calendar size={14} />
-                        <span className="text-white">{format(new Date(Number(drop.deadline) * 1000), 'PPP')}</span>
+                        <span className="text-white">{format(new Date(Number(drop.deadline) * 1000), 'PPP HH:mm')} UTC</span>
                       </div>
                       
                       {/* Eligibility Status */}
@@ -918,7 +1071,12 @@ export default function VaultDetails() {
                 )}
                 <div className="bg-[#1a2332] rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-1">Deadline</div>
-                  <div className="text-sm text-white">{format(new Date(Number(selectedDrop.deadline) * 1000), 'PPPpp')}</div>
+                  <div className="text-sm text-white">{format(new Date(Number(selectedDrop.deadline) * 1000), 'PPP HH:mm')} UTC</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Date: {format(new Date(Number(selectedDrop.deadlineDateMidnight) * 1000), 'PP')} | 
+                    Time: {Math.floor(Number(selectedDrop.deadlineTimeSeconds) / 3600).toString().padStart(2, '0')}:
+                    {Math.floor((Number(selectedDrop.deadlineTimeSeconds) % 3600) / 60).toString().padStart(2, '0')} UTC
+                  </div>
                 </div>
               </div>
             </div>
