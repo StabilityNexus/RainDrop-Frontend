@@ -270,11 +270,11 @@ export default function Explorer() {
   );
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden" style={{ background: '#1E1E1E' }}>
+    <main className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: '#1E1E1E' }}>
       {/* Scanline overlay */}
       <div className="pointer-events-none px-0 fixed inset-0 z-0" style={{background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)'}} />
       
-      <div className="w-full mt-28 z-10">
+      <div className="w-full mt-28 z-10 flex-grow flex flex-col">
         {/* Header Section */}
         <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
           <div className="relative">
@@ -345,7 +345,7 @@ export default function Explorer() {
         
 
         {/* Vaults Grid */}
-        <div className="px-6 sm:px-8 md:px-14 lg:px-20 xl:px-28 2xl:px-38 mb-12">
+        <div className="px-6 sm:px-8 md:px-14 lg:px-20 xl:px-28 2xl:px-38 mb-12 flex-grow">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {Array.from({ length: 6 }).map((_, idx) => (
@@ -407,7 +407,7 @@ export default function Explorer() {
 
           {/* Pagination Controls */}
           {filtered.length > itemsPerPage && (
-            <div className="flex items-center justify-center mt-12 gap-2">
+            <div className="flex items-center justify-center pb-8 gap-2">
               <Button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
@@ -444,10 +444,12 @@ export default function Explorer() {
             </div>
           )}
 
-          {/* Pagination Info */}
+          {/* Pagination Info - Fixed at bottom */}
           {filtered.length > 0 && (
-            <div className="text-center mt-6 text-sm text-gray-400">
-              Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} vaults
+            <div className="py-6 border-t border-gray-800/50 bg-[#1a1a1a]/50 backdrop-blur-sm">
+              <p className="text-center text-sm text-gray-400 font-medium">
+                Showing {startIndex + 1}–{Math.min(endIndex, filtered.length)} of {filtered.length} vaults
+              </p>
             </div>
           )}
       </div>

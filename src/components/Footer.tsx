@@ -98,76 +98,79 @@ const navigation = [
 
 export default function Footer() {
   return (
-    <footer className='w-full px-6 md:px-24 py-8 bg-gray-800/20 border-t border-gray-700'>
-      <div className='max-w-6xl mx-auto'>
-        <div className='flex flex-col md:flex-row items-center justify-between gap-6'>
-          {/* Navigation Links */}
-          <div className='flex items-center justify-between'>
-        <Link
-          href='https://stability.nexus/'
-          target='_blank'
-          className='cursor-pointer'
-        >
-          <Image
-            unoptimized
-            fetchPriority='high'
-            loading='lazy'
-            src='/logo.png'
-            alt='Stability Nexus Logo'
-            height={50}
-            width={50}
-          />
-        </Link>
-      </div>
-          <div className='flex flex-wrap items-center gap-6 text-sm'>
+    <footer className='w-full px-6 md:px-12 lg:px-16 py-8 bg-gray-800/30 backdrop-blur-sm border-t border-gray-700/50'>
+      <div className='w-full'>
+        <div className='flex flex-col md:flex-row items-center justify-between gap-8 mb-6'>
+          {/* Logo - Aligned to the left */}
+          <div className='flex items-center md:flex-none'>
+            <Link
+              href='https://stability.nexus/'
+              target='_blank'
+              className='cursor-pointer hover:opacity-80 transition-opacity'
+            >
+              <Image
+                unoptimized
+                fetchPriority='high'
+                loading='eager'
+                src='/logo.png'
+                alt='Stability Nexus Logo'
+                height={60}
+                width={60}
+                className='brightness-110 contrast-125'
+              />
+            </Link>
+          </div>
+
+          {/* Center Section - Navigation Links */}
+          <div className='flex flex-wrap items-center justify-center gap-6 text-sm'>
             <Link
               href='https://stability.nexus/protocols'
               target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Other Protocols
             </Link>
             <Link
               href='https://stability.nexus/research'
               target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Research
             </Link>
             <Link
               href='https://news.stability.nexus/'
               target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               News
             </Link>
             <Link
               href='https://docs.stability.nexus/'
               target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Docs
             </Link>
           </div>
 
-          {/* Social Media Links */}
-          <div className='flex items-center gap-3'>
+          {/* Social Media Links - Aligned to the right */}
+          <div className='flex items-center gap-3 md:flex-none'>
             {navigation.map(item => (
               <Link
                 key={item.name}
                 href={item.href}
                 target='_blank'
-                className='rounded-full bg-gray-700/50 p-2 hover:bg-blue-500/20 transition-colors'
+                className='rounded-full bg-gray-700/50 p-2.5 hover:bg-blue-500/30 transition-all duration-200 hover:scale-110 transform border border-transparent hover:border-blue-400/30'
               >
                 <span className='sr-only'>{item.name}</span>
-                <item.icon className='w-5 h-5' aria-hidden='true' />
+                <item.icon className='w-5 h-5 text-gray-300' aria-hidden='true' />
               </Link>
             ))}
           </div>
         </div>
 
         {/* Copyright */}
-        <div className='mt-6 pt-6 border-t border-gray-700 text-center text-sm text-gray-400'>
+        <div className='pt-6 border-t border-gray-700/50 text-center text-sm text-gray-400'>
           © 2024 Stability Nexus. All rights reserved.
         </div>
       </div>
