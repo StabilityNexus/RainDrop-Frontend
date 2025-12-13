@@ -19,8 +19,35 @@ import { indexedDBManager, VaultData } from '@/utils/indexedDB';
 import { VaultCard } from '@/components/VaultCard';
 import ChainSelector from '@/components/ChainSelector';
 
-
-
+/**
+ * Explorer page component - browse all available vaults
+ * 
+ * @component
+ * @returns {JSX.Element} Vault explorer page with search, filter, and pagination
+ * 
+ * @description
+ * Main vault discovery page featuring:
+ * - Display all vaults from the factory contract
+ * - Search by vault name or symbol
+ * - Chain filter (currently Scroll Sepolia)
+ * - Pagination for large vault lists
+ * - Favorite toggle integration (requires wallet connection)
+ * - Real-time sync with blockchain
+ * - IndexedDB caching for performance
+ * - Responsive grid layout
+ * 
+ * Data management:
+ * - Loads cached vaults from IndexedDB on mount
+ * - Syncs with blockchain if data is stale (> 5 minutes)
+ * - Maintains user favorites in both contract and local DB
+ * - Auto-refreshes on wallet connection state changes
+ * 
+ * @example
+ * ```tsx
+ * // Accessed via route /explorer
+ * <Explorer />
+ * ```
+ */
 export default function Explorer() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -446,7 +473,7 @@ export default function Explorer() {
 
           {/* Pagination Info - Fixed at bottom */}
           {filtered.length > 0 && (
-            <div className="py-6 border-t border-gray-800/50 bg-[#1a1a1a]/50 backdrop-blur-sm">
+            <div className="mt-auto py-6 border-t border-gray-800/50 bg-[#1a1a1a]/50 backdrop-blur-sm">
               <p className="text-center text-sm text-gray-400 font-medium">
                 Showing {startIndex + 1}–{Math.min(endIndex, filtered.length)} of {filtered.length} vaults
               </p>

@@ -3,6 +3,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+/**
+ * Social media navigation configuration
+ * @type {Array<{name: string, href: string, icon: React.FC}>}
+ */
 const navigation = [
   {
     name: 'StabilityNexus X',
@@ -96,6 +100,30 @@ const navigation = [
   },
 ]
 
+/**
+ * Footer component with branding, navigation, and social media links
+ * 
+ * @component
+ * @returns {JSX.Element} The application footer with links and copyright
+ * 
+ * @description
+ * Features:
+ * - Stability Nexus branding with logo
+ * - Navigation links to protocols, research, news, and documentation
+ * - Social media integration (X/Twitter, LinkedIn, GitHub, Telegram, Discord)
+ * - Responsive layout (column on mobile, row on desktop)
+ * - Security-compliant external links with rel="noopener noreferrer"
+ * - Dynamic copyright year
+ * - Hover effects and animations
+ * 
+ * Security:
+ * - All external links use rel="noopener noreferrer" to prevent window.opener attacks
+ * 
+ * @example
+ * ```tsx
+ * <Footer />
+ * ```
+ */
 export default function Footer() {
   return (
     <footer className='w-full px-6 md:px-12 lg:px-16 py-8 bg-gray-800/30 backdrop-blur-sm border-t border-gray-700/50'>
@@ -106,6 +134,7 @@ export default function Footer() {
             <Link
               href='https://stability.nexus/'
               target='_blank'
+              rel='noopener noreferrer'
               className='cursor-pointer hover:opacity-80 transition-opacity'
             >
               <Image
@@ -126,6 +155,7 @@ export default function Footer() {
             <Link
               href='https://stability.nexus/protocols'
               target='_blank'
+              rel='noopener noreferrer'
               className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Other Protocols
@@ -133,6 +163,7 @@ export default function Footer() {
             <Link
               href='https://stability.nexus/research'
               target='_blank'
+              rel='noopener noreferrer'
               className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Research
@@ -140,6 +171,7 @@ export default function Footer() {
             <Link
               href='https://news.stability.nexus/'
               target='_blank'
+              rel='noopener noreferrer'
               className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               News
@@ -147,6 +179,7 @@ export default function Footer() {
             <Link
               href='https://docs.stability.nexus/'
               target='_blank'
+              rel='noopener noreferrer'
               className='font-medium hover:text-blue-400 transition-colors text-gray-300 hover:scale-105 transform duration-200'
             >
               Docs
@@ -160,6 +193,7 @@ export default function Footer() {
                 key={item.name}
                 href={item.href}
                 target='_blank'
+                rel='noopener noreferrer'
                 className='rounded-full bg-gray-700/50 p-2.5 hover:bg-blue-500/30 transition-all duration-200 hover:scale-110 transform border border-transparent hover:border-blue-400/30'
               >
                 <span className='sr-only'>{item.name}</span>
@@ -171,7 +205,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className='pt-6 border-t border-gray-700/50 text-center text-sm text-gray-400'>
-          © 2024 Stability Nexus. All rights reserved.
+          © {new Date().getFullYear()} Stability Nexus. All rights reserved.
         </div>
       </div>
     </footer>

@@ -5,20 +5,56 @@ import { Sparkles, ArrowRight, PlusCircle } from 'lucide-react';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 
+/**
+ * Home page component with hero section, feature cards, and how it works section
+ * 
+ * @component
+ * @returns {JSX.Element} Landing page for Raindrop application
+ * 
+ * @description
+ * Main landing page featuring:
+ * - Animated rain drop background effect
+ * - Hero section with CTA buttons
+ * - Feature cards for My Vaults and Create Vault
+ * - How It Works section explaining the platform
+ * - Responsive design with gradient effects
+ * - Smooth animations and hover effects
+ * 
+ * Visual elements:
+ * - Rain animation with green (left) and blue (right) drops
+ * - Gradient backgrounds with blur effects
+ * - Futuristic typography with glass morphism
+ * 
+ * @example
+ * ```tsx
+ * // Accessed via route /
+ * <HomePage />
+ * ```
+ */
 export default function HomePage() {
   const router = useRouter();
 
-  // Generate positions for the falling drops just once per render
+  /**
+   * Pre-computed rain drop positions for animation performance
+   * Generates 8 drops: 4 green on left side, 4 blue on right side
+   * Each drop has randomized position, delay, and duration
+   * 
+   * @type {Array<{leftPercent: number, color: string, delay: number, duration: number}>}
+   */
   const drops = React.useMemo(() => {
     // 4 green on left side (0-49%), 4 blue on right side (50-99%)
     return [
       ...[...Array(4)].map(() => ({
         leftPercent: Math.random() * 49,
         color: 'green',
+        delay: Math.random() * 3,
+        duration: 3 + Math.random() * 2,
       })),
       ...[...Array(4)].map(() => ({
         leftPercent: 50 + Math.random() * 49,
         color: 'blue',
+        delay: Math.random() * 3,
+        duration: 3 + Math.random() * 2,
       })),
     ];
   }, []);
@@ -39,8 +75,8 @@ export default function HomePage() {
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {drops.map((drop, i) => {
           const left = `${drop.leftPercent}%`;
-          const delay = `${Math.random() * 3}s`;
-          const duration = `${3 + Math.random() * 2}s`;
+          const delay = `${drop.delay}s`;
+          const duration = `${drop.duration}s`;
           const dropClass =
             drop.color === 'green'
               ? 'bg-gradient-to-b from-green-400 to-emerald-500'

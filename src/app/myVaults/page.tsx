@@ -17,12 +17,20 @@ import { ERC20Abi } from '@/utils/contractABI/ERC20';
 import { indexedDBManager, VaultData } from '@/utils/indexedDB';
 import ChainSelector from '@/components/ChainSelector';
 
-
-
+/**
+ * Shortens an Ethereum address for display
+ * @param {string} address - The full Ethereum address
+ * @returns {string} Shortened address (0xXXXX...XXXX)
+ */
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
+/**
+ * Loading skeleton component for vault cards during data fetch
+ * @component
+ * @returns {JSX.Element} Animated skeleton placeholder
+ */
 const LoadingSkeleton = () => (
   <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6 shadow-[0_8px_16px_rgba(0,0,0,0.4)] animate-pulse flex flex-col gap-4">
     <div className="flex items-center gap-3">
@@ -49,17 +57,34 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+/**
+ * Individual vault card component for user-created vaults
+ * @component
+ * @param {Object} props - Component props
+ * @param {VaultData} props.vault - Vault data to display
+ * @returns {JSX.Element} Styled vault card with management button
+ */
 const VaultCard = ({ vault }: { vault: VaultData }) => {
   const router = useRouter();
 
+  /**
+   * Formats balance with proper precision and locale
+   * @param {string} balance - Balance string to format
+   * @returns {string} Formatted balance or placeholder for invalid values
+   */
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
+    // Guard against invalid inputs
+    if (!Number.isFinite(num) || num < 0) return '—';
     if (num === 0) return '0';
     if (num < 0.0001) return num.toExponential(2);
     if (num < 1) return num.toFixed(4);
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
+  /**
+   * Navigates to vault management page
+   */
   const handleCardClick = () => {
     router.push(`/r?vault=${vault.address}&chainId=534351`);
   };
@@ -115,6 +140,7 @@ const VaultCard = ({ vault }: { vault: VaultData }) => {
           {/* Enter Button */}
           <div className="flex justify-center pt-2">
             <button 
+              type="button"
               className="group bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 overflow-hidden relative whitespace-nowrap w-full"
             >
               <div className="px-4 py-3 flex items-center justify-center gap-2 group-hover:translate-x-1 transition-transform duration-300">
@@ -135,6 +161,34 @@ const VaultCard = ({ vault }: { vault: VaultData }) => {
   );
 };
 
+/**
+ * My Vaults page component - displays vaults created by the connected user
+ * 
+ * @component
+ * @returns {JSX.Element} Page with user's created vaults
+ * 
+ * @description
+ * Features:
+ * - Displays only vaults where user is the creator
+ * - Search and filter functionality
+ * - Pagination for large vault lists
+ * - Sync with blockchain data
+ * - IndexedDB caching for performance
+ * - Responsive grid layout
+ * - Real-time TVL and fee display
+ * 
+ * Data flow:
+ * 1. Loads cached vaults from IndexedDB
+ * 2. Checks if data is stale (> 5 minutes)
+ * 3. Syncs with blockchain if needed
+ * 4. Filters to show only user-created vaults
+ * 
+ * @example
+ * ```tsx
+ * // Accessed via route /myVaults
+ * <MyVaults />
+ * ```
+ */
 export default function MyVaults() {
   const router = useRouter();
   const { address, isConnected } = useAccount();

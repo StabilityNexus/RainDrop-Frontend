@@ -11,30 +11,117 @@ import { config } from '@/utils/config';
 import { RaindropFractoryAddress } from '@/utils/contractAddress';
 import { RAINDROP_FACTORY_ABI } from '@/utils/contractABI/RaindropFactory';
 
+/**
+ * Props for the VaultCard component
+ * @interface VaultCardProps
+ * @property {VaultData} vault - The vault data to display in the card
+ * @property {Function} [onFavoriteToggle] - Optional callback when favorite status changes
+ * @property {boolean} [showLastUpdated=false] - Whether to show the last updated timestamp
+ */
 interface VaultCardProps {
   vault: VaultData;
   onFavoriteToggle?: (vaultAddress: string, isFavorite: boolean) => void;
   showLastUpdated?: boolean;
 }
 
+/** Configuration constant for the blockchain network name */
+const VAULT_CHAIN_NAME = 'Scroll Sepolia';
+
+/**
+ * Shortens an Ethereum address to a readable format (e.g., 0x1234...5678)
+ * @param {string} address - The full Ethereum address to shorten
+ * @returns {string} The shortened address in format "0xXXXX...XXXX"
+ * @example
+ * shortenAddress("0x1234567890abcdef1234567890abcdef12345678")
+ * // Returns: "0x123456...345678"
+ */
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
+/**
+ * VaultCard component displays a card with vault information including TVL, fees, and favorite toggle
+ * 
+ * @component
+ * @param {VaultCardProps} props - The component props
+ * @returns {JSX.Element} A styled card showing vault details with interactive elements
+ * 
+ * @example
+ * ```tsx
+ * <VaultCard 
+ *   vault={vaultData} 
+ *   onFavoriteToggle={(address, isFavorite) => console.log('Toggled', address)}
+ *   showLastUpdated={true}
+ * />
+ * ```
+ * 
+ * @description
+ * Features:
+ * - Displays vault name, symbol, TVL, and fees
+ * - Interactive favorite button (requires wallet connection)
+ * - Hover effects and animations
+ * - Click to navigate to vault details
+ * - Optional last updated timestamp display
+ * 
+ * The card interacts with smart contracts to persist favorite status on-chain
+ * and uses IndexedDB for local caching.
+ */
 export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: VaultCardProps) {
   const router = useRouter();
   const { address: userAddress, isConnected } = useAccount();
   const [isFavorite, setIsFavorite] = useState(vault.isFavorite || false);
   const [isToggling, setIsToggling] = useState(false);
 
+  /**
+   * Formats a balance string into a human-readable format with appropriate precision
+   * 
+   * @param {string} balance - The balance value as a string
+   * @returns {string} Formatted balance string
+   * 
+   * @remarks
+   * - Returns '0' for zero/invalid values
+   * - Uses exponential notation for values < 0.0001
+   * - Shows 4 decimals for values < 1
+   * - Uses locale formatting with 2 decimals for larger values
+   * - Handles NaN and Infinity by returning '0'
+   * 
+   * @example
+   * formatBalance("1234.5678") // Returns "1,234.57"
+   * formatBalance("0.000001") // Returns "1.00e-6"
+   * formatBalance("0.5") // Returns "0.5000"
+   */
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
+    // Guard against invalid inputs
+    if (!Number.isFinite(num) || num < 0) return '0';
     if (num === 0) return '0';
     if (num < 0.0001) return num.toExponential(2);
     if (num < 1) return num.toFixed(4);
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
+  /**
+   * Handles toggling the favorite status of a vault
+   * 
+   * @async
+   * @param {React.MouseEvent} e - The click event (propagation is stopped to prevent card navigation)
+   * @returns {Promise<void>}
+   * 
+   * @remarks
+   * Performs the following actions:
+   * 1. Validates user is connected and not already toggling
+   * 2. Calls appropriate smart contract function (addInteraction or removeInteraction)
+   * 3. Waits for transaction confirmation
+   * 4. Updates local state and IndexedDB
+   * 5. Notifies parent component via callback if provided
+   * 
+   * Error handling:
+   * - Logs user rejections separately from other errors
+   * - Reverts optimistic UI updates on failure
+   * - Provides console feedback for debugging
+   * 
+   * @throws Will log errors but not throw to prevent UI crashes
+   */
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -94,6 +181,13 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
     }
   };
 
+  /**
+   * Handles navigation to the vault detail page
+   * 
+   * @returns {void}
+   * @remarks
+   * Navigates to /r route with vault address and chainId (534351 - Scroll Sepolia) as query parameters
+   */
   const handleCardClick = () => {
     router.push(`/r?vault=${vault.address}&chainId=534351`);
   };
@@ -137,7 +231,7 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
           <div className="flex items-center gap-2 mb-2">
             <p className="text-sm font-semibold text-purple-300">{vault.symbol} Vault</p>
             <span className="text-gray-600">•</span>
-            <p className="text-sm text-emerald-400 font-medium">Scroll Sepolia</p>
+            <p className="text-sm text-emerald-400 font-medium">{VAULT_CHAIN_NAME}</p>
           </div>
 
           {/* Stats Column */}
@@ -161,6 +255,7 @@ export function VaultCard({ vault, onFavoriteToggle, showLastUpdated = false }: 
           {/* Enter Button */}
           <div className="flex justify-center pt-2">
             <button 
+              type="button"
               className="group bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 overflow-hidden relative whitespace-nowrap w-full"
             >
               <div className="px-4 py-3 flex items-center justify-center gap-2 group-hover:translate-x-1 transition-transform duration-300">

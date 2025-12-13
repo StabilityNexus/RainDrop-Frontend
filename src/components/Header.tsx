@@ -1,15 +1,46 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Droplets, Sparkles, Target, PlusCircle, Home, Menu, ChevronDown, Star } from 'lucide-react'
 
+/**
+ * Header component with navigation menu and wallet connection
+ * 
+ * @component
+ * @returns {JSX.Element} The application header with responsive navigation
+ * 
+ * @description
+ * Features:
+ * - Responsive design with mobile dropdown menu
+ * - Active route highlighting
+ * - Glass morphism design with shimmer effects
+ * - Wallet connection integration via RainbowKit
+ * - Accessible keyboard navigation
+ * - Auto-close dropdown on route change and Escape key
+ * 
+ * Navigation items:
+ * - Home (/)
+ * - Explorer (/explorer)
+ * - Favorites (/favorites)
+ * - My Vaults (/myVaults)
+ * - Create Vault (/createVault)
+ * 
+ * @example
+ * ```tsx
+ * <Header />
+ * ```
+ */
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
 
+  /** 
+   * Navigation menu items configuration
+   * @type {Array<{name: string, href: string, icon: React.ComponentType}>}
+   */
   const navItems = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Explorer', href: '/explorer', icon: Target },
@@ -18,7 +49,35 @@ export function Header() {
     { name: 'Create Vault', href: '/createVault', icon: PlusCircle },
   ];
 
+  /**
+   * Checks if the current route matches the provided href
+   * @param {string} href - The route path to check
+   * @returns {boolean} True if the current pathname matches the href
+   */
   const isActive = (href: string) => pathname === href;
+
+  /**
+   * Auto-close dropdown when route changes
+   * @effect Closes dropdown menu whenever pathname changes
+   */
+  useEffect(() => {
+    setShowDropdown(false);
+  }, [pathname]);
+
+  /**
+   * Handle Escape key to close dropdown
+   * @effect Adds and removes keydown event listener for Escape key
+   */
+  useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showDropdown) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [showDropdown]);
 
   return (
     <>
@@ -121,6 +180,16 @@ export function Header() {
             <div className="lg:hidden relative">
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowDropdown(!showDropdown);
+                  }
+                }}
+                aria-haspopup="menu"
+                aria-expanded={showDropdown}
+                aria-controls="mobile-nav-menu"
+                aria-label="Toggle navigation menu"
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium transition-all duration-200"
               >
                 <Menu size={20} />
@@ -128,7 +197,12 @@ export function Header() {
               </button>
               
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden dropdown-enter">
+                <div 
+                  id="mobile-nav-menu"
+                  role="menu"
+                  aria-hidden={!showDropdown}
+                  className="absolute right-0 mt-2 w-48 rounded-xl bg-gray-900/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden dropdown-enter"
+                >
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
@@ -136,6 +210,7 @@ export function Header() {
                       <Link
                         key={item.name}
                         href={item.href}
+                        role="menuitem"
                         onClick={() => setShowDropdown(false)}
                         className={`flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors ${
                           active ? 'bg-white/15 text-white' : 'text-gray-300'
