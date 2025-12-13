@@ -10,7 +10,7 @@
 
   <img alt="Stability Nexus" src="public/stability.svg" width="175">
 
-  <img src="public/logo.png" width="175" />
+ <img src="public/logo.png" width="175" alt="RainDrop Frontend Logo" />
 
 </div>
 
@@ -173,7 +173,7 @@ pnpm install
 
 Create `.env.local` and set your WalletConnect project ID:
 
-```
+```bash
 NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
