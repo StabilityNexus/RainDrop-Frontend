@@ -46,23 +46,23 @@ export default function Explorer() {
     try {
       setError(null);
       await indexedDBManager.init();
-      
+
       // First, try to load from IndexedDB
       const cachedVaults = await indexedDBManager.getAllVaults();
-      
+
       if (cachedVaults.length > 0) {
         setVaults(cachedVaults);
         setLoading(false); // Hide loading since we have cached data
-        
+
         // Check if data is stale (older than 5 minutes)
-        const hasStaleData = cachedVaults.some(vault => 
+        const hasStaleData = cachedVaults.some(vault =>
           Date.now() - vault.lastUpdated > 5 * 60 * 1000
         );
-        
+
         if (!hasStaleData) {
           return; // Data is fresh, no need to sync
         }
-        
+
         // If data is stale, sync in background without showing loading
         await syncVaults();
       } else {
@@ -95,9 +95,9 @@ export default function Explorer() {
             functionName: 'getUserVaultHistorySlice',
             args: [address, BigInt(0), BigInt(999)], // Get up to 1000 vaults
           }) as `0x${string}`[];
-          
+
           userFavorites = new Set(userVaultHistory.map(addr => addr.toLowerCase()));
-          
+
           // Sync favorites with IndexedDB
           await indexedDBManager.syncUserFavoritesFromContract(address, userVaultHistory);
         } catch (err) {
@@ -114,7 +114,7 @@ export default function Explorer() {
       }) as bigint;
 
       const totalVaults = Number(vaultId);
-      
+
       if (totalVaults === 0) {
         setVaults([]);
         return;
@@ -123,10 +123,10 @@ export default function Explorer() {
       // Get all vaults in batches to avoid overwhelming the RPC
       const batchSize = 10;
       const allVaults: VaultData[] = [];
-      
+
       for (let i = 1; i <= totalVaults; i += batchSize) {
         const end = Math.min(i + batchSize - 1, totalVaults);
-        
+
         try {
           const vaultSlice = await publicClient.readContract({
             address: factoryAddress,
@@ -219,9 +219,9 @@ export default function Explorer() {
   };
 
   const handleFavoriteToggle = (vaultAddress: string, isFavorite: boolean) => {
-    setVaults(prev => 
-      prev.map(vault => 
-        vault.address === vaultAddress 
+    setVaults(prev =>
+      prev.map(vault =>
+        vault.address === vaultAddress
           ? { ...vault, isFavorite }
           : vault
       )
@@ -250,7 +250,7 @@ export default function Explorer() {
           <div className="h-4 w-16 bg-gray-700 rounded"></div>
         </div>
       </div>
-      
+
       {/* Stats */}
       <div className="flex flex-col gap-3 py-4 border-y border-gray-800">
         {[...Array(3)].map((_, i) => (
@@ -270,68 +270,104 @@ export default function Explorer() {
   );
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden" style={{ background: '#1E1E1E' }}>
-      {/* Scanline overlay */}
-      <div className="pointer-events-none px-0 fixed inset-0 z-0" style={{background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)'}} />
-      
-      <div className="w-full mt-28 z-10">
+    <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden bg-[#0D0F14]">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#131822] via-[#0D0F14] to-[#0B0D12] opacity-90" />
+
+      {/* Decorative blurred circles */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#3673F5]/20 blur-3xl animate-pulse" />
+        <div className="absolute bottom-10 right-10 w-56 h-56 rounded-full bg-emerald-500/20 blur-3xl animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-44 h-44 rounded-full bg-[#7ecbff]/15 blur-2xl animate-pulse animation-delay-4000" />
+      </div>
+
+      {/* Rain animation overlay */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`green-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-green-400 to-emerald-500 rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = 50 + Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`blue-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-[#7ecbff] to-[#3673F5] rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="w-full mt-28 z-10 flex-1 flex flex-col pb-8">
         {/* Header Section */}
         <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
           <div className="relative">
-            <div className="relative rounded-3xl px-8 py-8">
+            <div className="relative rounded-3xl px-4 sm:px-8 py-6 sm:py-8">
               <div className="flex flex-col gap-6">
                 {/* Title and Buttons Row */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] rounded-xl blur-sm"></div>
-                    </div>
-                    <div className="text-center">
-                      <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                    <div className="text-center sm:text-left">
+                      <h1 className="font-futuristic text-3xl sm:text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
                         Explore Vaults
                       </h1>
-                      <div className="relative mx-auto w-64 h-1">
+                      <div className="relative mx-auto sm:mx-0 w-48 sm:w-64 h-1">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-400 to-transparent rounded-full"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center">
                     <Button
                       onClick={syncVaults}
                       disabled={syncing}
-                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
-                      <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                      <span>{syncing ? 'Syncing...' : 'Sync'}</span>
+                      <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                      <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync'}</span>
                     </Button>
                     <Button
                       onClick={() => router.push('/createVault')}
-                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 text-sm"
                     >
-                      <PlusCircle className="h-5 w-5" />
-                      Create Vault
+                      <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="hidden sm:inline">Create Vault</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Search and Filter Row */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                   {/* Search Bar */}
-                  <div className="relative w-[300px] pl-12">
-                    <div className="absolute inset-y-0 left-15 flex items-center pointer-events-none">
+                  <div className="relative w-full sm:w-[300px]">
+                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                       <Search className="h-4 w-4 text-gray-400" />
                     </div>
                     <Input
                       placeholder="Search by token name or symbol"
                       value={search}
                       onChange={e => setSearch(e.target.value)}
-                      className="w-[300px] pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-sm"
+                      className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-sm"
                     />
                   </div>
 
                   {/* Network Filter */}
-                  <div className="w-[200px] pr-8">
+                  <div className="w-full sm:w-[200px]">
                     <ChainSelector
                       selectedChain={selectedChain}
                       onChainSelect={setSelectedChain}
@@ -342,12 +378,12 @@ export default function Explorer() {
             </div>
           </div>
         </div>
-        
+
 
         {/* Vaults Grid */}
-        <div className="px-6 sm:px-8 md:px-14 lg:px-20 xl:px-28 2xl:px-38 mb-12">
+        <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 mb-12">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <LoadingSkeleton key={idx} />
               ))}
@@ -392,11 +428,11 @@ export default function Explorer() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
               {currentVaults.map((vault) => (
-                <VaultCard 
-                  key={vault.address} 
-                  vault={vault} 
+                <VaultCard
+                  key={vault.address}
+                  vault={vault}
                   onFavoriteToggle={handleFavoriteToggle}
                   showLastUpdated={true}
                 />
@@ -405,6 +441,8 @@ export default function Explorer() {
           )}
         </div>
 
+        {/* Bottom Section: Pagination */}
+        <div className="mt-auto pb-6">
           {/* Pagination Controls */}
           {filtered.length > itemsPerPage && (
             <div className="flex items-center justify-center mt-12 gap-2">
@@ -416,17 +454,16 @@ export default function Explorer() {
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2 mx-4">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <Button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
-                      page === currentPage
-                        ? 'bg-white/20 border border-white/30 text-white shadow-lg'
-                        : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
-                    }`}
+                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${page === currentPage
+                      ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                      : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                      }`}
                   >
                     {page}
                   </Button>
@@ -450,6 +487,7 @@ export default function Explorer() {
               Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length} vaults
             </div>
           )}
+        </div>
       </div>
     </main>
   );

@@ -101,68 +101,74 @@ export default function Footer() {
     <footer className='w-full px-6 md:px-24 py-8 bg-gray-800/20 border-t border-gray-700'>
       <div className='max-w-6xl mx-auto'>
         <div className='flex flex-col md:flex-row items-center justify-between gap-6'>
-          {/* Navigation Links */}
-          <div className='flex items-center justify-between'>
-        <Link
-          href='https://stability.nexus/'
-          target='_blank'
-          className='cursor-pointer'
-        >
-          <Image
-            unoptimized
-            fetchPriority='high'
-            loading='lazy'
-            src='/logo.png'
-            alt='Stability Nexus Logo'
-            height={50}
-            width={50}
-          />
-        </Link>
-      </div>
-          <div className='flex flex-wrap items-center gap-6 text-sm'>
+          {/* Logo Section */}
+          <div className='flex items-center'>
             <Link
-              href='https://stability.nexus/protocols'
+              href='https://stability.nexus/'
               target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              className='cursor-pointer bg-white/10 rounded-full p-2 hover:bg-white/20 transition-all'
             >
-              Other Protocols
-            </Link>
-            <Link
-              href='https://stability.nexus/research'
-              target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
-            >
-              Research
-            </Link>
-            <Link
-              href='https://news.stability.nexus/'
-              target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
-            >
-              News
-            </Link>
-            <Link
-              href='https://docs.stability.nexus/'
-              target='_blank'
-              className='font-medium hover:text-blue-400 transition-colors text-gray-300'
-            >
-              Docs
+              <Image
+                unoptimized
+                fetchPriority='high'
+                loading='lazy'
+                src='/logo.png'
+                alt='Stability Nexus Logo'
+                height={40}
+                width={40}
+                className='w-10 h-10'
+              />
             </Link>
           </div>
 
-          {/* Social Media Links */}
-          <div className='flex items-center gap-3'>
-            {navigation.map(item => (
+          {/* Right Side: Links & Socials */}
+          <div className='flex flex-col md:flex-row items-center gap-6 md:gap-8'>
+            {/* Navigation Links */}
+            <div className='flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm'>
               <Link
-                key={item.name}
-                href={item.href}
+                href='https://stability.nexus/protocols'
                 target='_blank'
-                className='rounded-full bg-gray-700/50 p-2 hover:bg-blue-500/20 transition-colors'
+                className='font-medium hover:text-blue-400 transition-colors text-gray-300'
               >
-                <span className='sr-only'>{item.name}</span>
-                <item.icon className='w-5 h-5' aria-hidden='true' />
+                Other Protocols
               </Link>
-            ))}
+              <Link
+                href='https://stability.nexus/research'
+                target='_blank'
+                className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              >
+                Research
+              </Link>
+              <Link
+                href='https://news.stability.nexus/'
+                target='_blank'
+                className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              >
+                News
+              </Link>
+              <Link
+                href='https://docs.stability.nexus/'
+                target='_blank'
+                className='font-medium hover:text-blue-400 transition-colors text-gray-300'
+              >
+                Docs
+              </Link>
+            </div>
+
+            {/* Social Media Links */}
+            <div className='flex items-center gap-3'>
+              {navigation.map(item => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  target='_blank'
+                  className='rounded-full bg-gray-700/50 p-2 hover:bg-blue-500/20 transition-colors'
+                >
+                  <span className='sr-only'>{item.name}</span>
+                  <item.icon className='w-5 h-5' aria-hidden='true' />
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
 
