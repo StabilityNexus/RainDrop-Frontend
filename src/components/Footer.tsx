@@ -103,22 +103,22 @@ export default function Footer() {
         <div className='flex flex-col md:flex-row items-center justify-between gap-6'>
           {/* Navigation Links */}
           <div className='flex items-center justify-between'>
-        <Link
-          href='https://stability.nexus/'
-          target='_blank'
-          className='cursor-pointer'
-        >
-          <Image
-            unoptimized
-            fetchPriority='high'
-            loading='lazy'
-            src='/logo.png'
-            alt='Stability Nexus Logo'
-            height={50}
-            width={50}
-          />
-        </Link>
-      </div>
+            <a
+              href='https://stability.nexus'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='hover:opacity-80 transition-opacity'
+            >
+              <Image
+                src='https://stability.nexus/logo-animated.gif'
+                alt='Stability Nexus'
+                width={40}
+                height={40}
+                unoptimized
+                className='rounded-md'
+              />
+            </a>
+          </div>
           <div className='flex flex-wrap items-center gap-6 text-sm'>
             <Link
               href='https://stability.nexus/protocols'
