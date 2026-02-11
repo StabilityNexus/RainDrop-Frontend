@@ -58,27 +58,47 @@ export default function HomePage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center space-y-6">
-        <h1 className="font-futuristic text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff] animate-fade-in">
-          Raindrop
-        </h1>
-        <p className="max-w-2xl text-lg md:text-xl text-blue-300 font-futuristic leading-relaxed animate-slide-in">
-          Stake confidently in self-stabilising vaults where every withdrawal fuels those who stay. Launch a vault, earn from fees, and watch your community grow.
-        </p>
+      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center space-y-8">
+        <div className="space-y-6">
+          <h1 className="font-futuristic text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff] drop-shadow-2xl">
+            Raindrop
+          </h1>
+          <p className="max-w-3xl mx-auto text-xl md:text-2xl text-gray-300 font-futuristic leading-relaxed">
+            Stake confidently in self-stabilising vaults where every withdrawal fuels those who stay. Launch a vault, earn from fees, and watch your community grow.
+          </p>
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-8">
+          <Button
+            onClick={() => router.push('/explorer')}
+            className="h-14 px-8 bg-gradient-to-r from-[#3673F5] to-[#7ecbff] hover:from-[#2563eb] hover:to-[#5eb9ff] text-white font-bold text-lg gap-3 shadow-[0_0_30px_rgba(54,115,245,0.5)] hover:shadow-[0_0_40px_rgba(54,115,245,0.7)] transition-all duration-300"
+          >
+            <Sparkles size={24} />
+            Explore Vaults
+          </Button>
+          <Button
+            onClick={() => router.push('/createVault')}
+            className="h-14 px-8 bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-bold text-lg gap-3 shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:shadow-[0_0_40px_rgba(16,185,129,0.7)] transition-all duration-300"
+          >
+            <PlusCircle size={24} />
+            Create Vault
+          </Button>
+        </div>
       </section>
 
       {/* Feature Cards */}
-      <section className="relative z-10 w-full grid grid-cols-1 sm:grid-cols-2 gap-6 px-4 pb-32 max-w-4xl mx-auto">
+      <section className="relative z-10 w-full grid grid-cols-1 md:grid-cols-2 gap-6 px-4 sm:px-6 md:px-8 pb-20 sm:pb-32 max-w-4xl mx-auto">
         {/* Vaults Card */}
-        <div className="group relative bg-[#1A1F2B] rounded-2xl p-8 flex flex-col h-[320px] overflow-hidden shadow-lg">
+        <div className="group relative bg-[#1A1F2B] rounded-2xl p-6 sm:p-8 flex flex-col h-[280px] sm:h-[320px] overflow-hidden shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-[#3673F5]/20 to-[#7ecbff]/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
           <div className="flex items-center justify-center gap-3 mb-4 z-10">
             <div className="p-3 rounded-xl bg-gradient-to-r from-[#3673F5] to-[#7ecbff]">
               <Sparkles className="text-white" size={24} />
             </div>
-            <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7ecbff] font-bold">Vaults</h3>
+            <h3 className="font-futuristic text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7ecbff] font-bold">Vaults</h3>
           </div>
-          <p className="text-blue-300 font-futuristic mb-6 text-center z-10">
+          <p className="text-blue-300 font-futuristic mb-6 text-center z-10 text-sm sm:text-base">
             View and manage your existing vaults with ease.
           </p>
           <Button
@@ -90,15 +110,15 @@ export default function HomePage() {
         </div>
 
         {/* Create Vault Card */}
-        <div className="group relative bg-[#1A1F2B] rounded-2xl p-8 flex flex-col h-[320px] overflow-hidden shadow-lg">
+        <div className="group relative bg-[#1A1F2B] rounded-2xl p-6 sm:p-8 flex flex-col h-[280px] sm:h-[320px] overflow-hidden shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-400/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
           <div className="flex items-center justify-center gap-3 mb-4 z-10">
             <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-400">
               <PlusCircle className="text-white" size={24} />
             </div>
-            <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-green-400 font-bold">Create Vault</h3>
+            <h3 className="font-futuristic text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-green-400 font-bold">Create Vault</h3>
           </div>
-          <p className="text-emerald-300 font-futuristic mb-6 text-center z-10">
+          <p className="text-emerald-300 font-futuristic mb-6 text-center z-10 text-sm sm:text-base">
             Launch a new vault for your community and start distributing rewards.
           </p>
           <Button
@@ -111,34 +131,34 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative z-10 max-w-5xl mx-auto px-4 pb-32 space-y-12">
+      <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-20 sm:pb-32 space-y-8 sm:space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="font-futuristic text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff]">
+          <h2 className="font-futuristic text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-emerald-400 to-[#7ecbff]">
             How It Works
           </h2>
-          <p className="text-blue-300 max-w-2xl mx-auto">
+          <p className="text-blue-300 max-w-2xl mx-auto text-sm sm:text-base">
             Raindrop aligns incentives between vault creators and stakers using a simple but powerful fee mechanism.
           </p>
         </div>
-        <ul className="grid md:grid-cols-2 gap-8">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
           <li className="space-y-3">
-            <h3 className="font-semibold text-white">Create a Vault</h3>
+            <h3 className="font-semibold text-white text-base sm:text-lg">Create a Vault</h3>
             <p className="text-blue-300 text-sm">Define token, fee and reward parameters, then deploy with one click.</p>
           </li>
           <li className="space-y-3">
-            <h3 className="font-semibold text-white">Stake &amp; Earn</h3>
+            <h3 className="font-semibold text-white text-base sm:text-lg">Stake & Earn</h3>
             <p className="text-blue-300 text-sm">Users deposit tokens and receive vault shares that appreciate over time.</p>
           </li>
           <li className="space-y-3">
-            <h3 className="font-semibold text-white">Withdrawal Fees</h3>
+            <h3 className="font-semibold text-white text-base sm:text-lg">Withdrawal Fees</h3>
             <p className="text-blue-300 text-sm">Early exits pay a fee that is distributed between the vault creator and loyal stakers.</p>
           </li>
           <li className="space-y-3">
-            <h3 className="font-semibold text-white">Distribute Rewards</h3>
+            <h3 className="font-semibold text-white text-base sm:text-lg">Distribute Rewards</h3>
             <p className="text-blue-300 text-sm">Anyone can top-up the vault, boosting yields for all current stakeholders.</p>
           </li>
         </ul>
       </section>
     </main>
   );
-} 
+}

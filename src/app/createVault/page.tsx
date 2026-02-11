@@ -56,7 +56,7 @@ export default function CreateVault() {
 
   const handleChange = (key: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
-    
+
     // Validate vault creator fee
     if (key === 'vaultCreatorFee') {
       const fee = parseFloat(value);
@@ -95,9 +95,9 @@ export default function CreateVault() {
     try {
       // Convert percentage to contract units (multiply by 1000) since DENOMINATOR = 100000
       const feeInBasisPoints = Math.round(fee * 1000);
-      
+
       const treasuryFeeInBasisPoints = Math.max(300, Math.round(feeInBasisPoints / 10));
-      
+
       await writeContract({
         address: RaindropFractoryAddress[534351],
         abi: RAINDROP_FACTORY_ABI,
@@ -120,13 +120,53 @@ export default function CreateVault() {
   if (isSuccess) router.push('/myVaults');
 
   return (
-    <main className="min-h-screen flex items-center justify-center relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
-      <div className="pointer-events-none fixed inset-0 z-0" style={{background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)'}} />
-      
+    <main className="min-h-screen flex items-center justify-center relative overflow-hidden p-4 bg-[#0D0F14]">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#131822] via-[#0D0F14] to-[#0B0D12] opacity-90" />
+
+      {/* Decorative blurred circles */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#3673F5]/20 blur-3xl animate-pulse" />
+        <div className="absolute bottom-10 right-10 w-56 h-56 rounded-full bg-emerald-500/20 blur-3xl animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-44 h-44 rounded-full bg-[#7ecbff]/15 blur-2xl animate-pulse animation-delay-4000" />
+      </div>
+
+      {/* Rain animation overlay */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`green-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-green-400 to-emerald-500 rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = 50 + Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`blue-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-[#7ecbff] to-[#3673F5] rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+      </div>
+
       <div className="w-full mt-24 max-w-4xl relative group transform transition-all duration-300 hover:scale-[1.02]">
         {/* Background glow effect */}
         <div className="absolute -inset-0.5 bg-white opacity-5 blur rounded-2xl group-hover:opacity-10 transition duration-300"></div>
-        
+
         {/* Card content */}
         <div className="relative bg-[#1E1E1E] rounded-2xl border border-gray-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.5)] group-hover:shadow-[0_20px_48px_rgba(255,255,255,0.2)] transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-r from-[#3673F5] via-emerald-500 to-[#7ecbff] rounded-2xl animate-gradient-x"></div>
@@ -140,7 +180,7 @@ export default function CreateVault() {
                 <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
                 Back to Explorer
               </Button>
-              
+
               <div className="flex flex-col items-center">
                 <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2 text-center">
                   Create Vault
@@ -150,7 +190,7 @@ export default function CreateVault() {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
                 </div>
               </div>
-              
+
               {/* Empty div for centering the title */}
               <div className="w-[140px]"></div>
             </div>
@@ -270,11 +310,10 @@ export default function CreateVault() {
                     onChange={e => handleChange('vaultCreatorFee', e.target.value)}
                     placeholder="0"
                     required
-                    className={`relative w-full bg-[#1a2332] text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:border-transparent font-futuristic h-12 pr-16 ${
-                      validationError && formData.vaultCreatorFee ? 
-                      'border-red-500/50 focus:ring-red-500' : 
-                      'border-emerald-500/30 focus:ring-emerald-500'
-                    }`}
+                    className={`relative w-full bg-[#1a2332] text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:border-transparent font-futuristic h-12 pr-16 ${validationError && formData.vaultCreatorFee ?
+                        'border-red-500/50 focus:ring-red-500' :
+                        'border-emerald-500/30 focus:ring-emerald-500'
+                      }`}
                   />
                   <span className="absolute right-12 top-1/2 -translate-y-1/2 text-emerald-300 font-futuristic text-sm">%</span>
                   <button
@@ -290,12 +329,12 @@ export default function CreateVault() {
                     Percentage fees that will be deducted from every reward paid into this vault and sent to the creator address
                   </p>
                 )}
-                
+
                 {/* Fee Preview */}
                 {formData.vaultCreatorFee && !validationError && (
                   <div className="bg-gradient-to-r from-gray-500/20 via-[#3673F5]/20 to-emerald-500/20 border border-gray-500/30 rounded-lg p-3 text-center">
                     <p className="text-gray-300 font-futuristic text-sm">
-                      Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% = 
+                      Preview: Creator Fee {formData.vaultCreatorFee}% + Treasury Fee {Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1).toFixed(2)}% =
                       <span className="font-bold text-white"> Total {(parseFloat(formData.vaultCreatorFee) + Math.max(0.3, parseFloat(formData.vaultCreatorFee) * 0.1)).toFixed(2)}%</span>
                     </p>
                   </div>

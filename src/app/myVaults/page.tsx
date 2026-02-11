@@ -32,7 +32,7 @@ const LoadingSkeleton = () => (
         <div className="h-4 w-16 bg-gray-700 rounded"></div>
       </div>
     </div>
-    
+
     <div className="flex flex-col gap-3 py-4 border-y border-gray-800">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="flex items-center justify-between">
@@ -63,7 +63,7 @@ const VaultCard = ({ vault }: { vault: VaultData }) => {
     >
       {/* Background glow effect */}
       <div className="absolute -inset-0.5 bg-white opacity-5 blur rounded-xl group-hover:opacity-10 transition duration-300"></div>
-      
+
       {/* Card content */}
       <div className="relative bg-[#1a1a1a] rounded-xl border border-gray-800 p-4 shadow-[0_8px_16px_rgba(0,0,0,0.4)] group-hover:shadow-[0_16px_32px_rgba(255,255,255,0.1)] transition-all duration-300">
         <div className="flex flex-col gap-3">
@@ -104,7 +104,7 @@ const VaultCard = ({ vault }: { vault: VaultData }) => {
 
           {/* Enter Button */}
           <div className="flex justify-center px-4">
-            <button 
+            <button
               className="group bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-600 hover:to-green-500 text-white font-medium rounded-lg transition-all duration-300 shadow-lg hover:shadow-emerald-500/20 overflow-hidden relative whitespace-nowrap w-full"
             >
               <div className="px-4 py-2 flex items-center justify-center gap-2 group-hover:translate-x-2 transition-transform duration-300">
@@ -152,24 +152,24 @@ export default function MyVaults() {
       setIsLoading(true);
       setError(null);
       await indexedDBManager.init();
-      
+
       // First, try to load from IndexedDB
       const cachedVaults = await indexedDBManager.getUserCreatedVaults(address);
-      
+
       if (cachedVaults.length > 0) {
         setVaults(cachedVaults);
         setIsLoading(false);
-        
+
         // Check if data is stale (older than 5 minutes)
-        const hasStaleData = cachedVaults.some(vault => 
+        const hasStaleData = cachedVaults.some(vault =>
           Date.now() - vault.lastUpdated > 5 * 60 * 1000
         );
-        
+
         if (!hasStaleData) {
           return; // Data is fresh, no need to sync
         }
       }
-      
+
       // If no cached data or data is stale, fetch from blockchain
       await syncVaults();
     } catch (err) {
@@ -182,7 +182,7 @@ export default function MyVaults() {
 
   const syncVaults = async () => {
     if (!isConnected || !address) return;
-    
+
     try {
       setSyncing(true);
       setError(null);
@@ -333,53 +333,92 @@ export default function MyVaults() {
   // Show connect wallet message if not connected
   if (!isConnected) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden" style={{ background: '#1E1E1E' }}>
-        {/* Scanline overlay */}
-        <div className="pointer-events-none px-0 fixed inset-0 z-0" style={{background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)'}} />
-        
-        <div className="w-full mt-28 z-10">
+      <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden bg-[#0D0F14]">
+        {/* Subtle gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#131822] via-[#0D0F14] to-[#0B0D12] opacity-90" />
+
+        {/* Decorative blurred circles */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#3673F5]/20 blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 right-10 w-56 h-56 rounded-full bg-emerald-500/20 blur-3xl animate-pulse animation-delay-2000" />
+          <div className="absolute top-1/2 left-1/3 w-44 h-44 rounded-full bg-[#7ecbff]/15 blur-2xl animate-pulse animation-delay-4000" />
+        </div>
+
+        {/* Rain animation overlay */}
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          {[...Array(4)].map((_, i) => {
+            const leftPercent = Math.random() * 49;
+            const delay = `${Math.random() * 3}s`;
+            const duration = `${3 + Math.random() * 2}s`;
+            return (
+              <div
+                key={`green-${i}`}
+                className="absolute top-0 animate-rain"
+                style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+              >
+                <div className="w-[2px] h-8 bg-gradient-to-b from-green-400 to-emerald-500 rounded-full shadow-lg opacity-90" />
+              </div>
+            );
+          })}
+          {[...Array(4)].map((_, i) => {
+            const leftPercent = 50 + Math.random() * 49;
+            const delay = `${Math.random() * 3}s`;
+            const duration = `${3 + Math.random() * 2}s`;
+            return (
+              <div
+                key={`blue-${i}`}
+                className="absolute top-0 animate-rain"
+                style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+              >
+                <div className="w-[2px] h-8 bg-gradient-to-b from-[#7ecbff] to-[#3673F5] rounded-full shadow-lg opacity-90" />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="w-full mt-20 sm:mt-28 z-10">
           {/* Header Section */}
           <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 mb-12">
             <div className="relative">
-              <div className="relative rounded-3xl px-8 py-8">
+              <div className="relative rounded-3xl px-4 sm:px-8 py-6 sm:py-8">
                 <div className="flex flex-col gap-6">
                   {/* Title and Create Button Row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                      <div className="text-center sm:text-left">
+                        <h1 className="font-futuristic text-3xl sm:text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
                           My Vaults
                         </h1>
-                        <div className="relative mx-auto w-64 h-1">
+                        <div className="relative mx-auto sm:mx-0 w-48 sm:w-64 h-1">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-400 to-transparent rounded-full"></div>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center">
                       <Button
                         onClick={syncVaults}
                         disabled={syncing || !isConnected}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50"
+                        className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                       >
                         <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                        {syncing ? 'Syncing...' : 'Sync'}
+                        <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync'}</span>
                       </Button>
                       <Button
                         onClick={() => router.push('/createVault')}
-                        className="bg-[#4B96FF] hover:bg-[#4B96FF]/90 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-[#4B96FF]/25"
+                        className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 text-sm"
                       >
-                        <PlusCircle className="h-5 w-5" />
-                        Create Vault
+                        <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <span className="hidden sm:inline">Create Vault</span>
                       </Button>
                     </div>
                   </div>
 
                   {/* Search and Filter Row */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     {/* Search Bar */}
-                    <div className="relative w-[300px] pl-12">
-                      <div className="absolute inset-y-0 left-15 flex items-center pointer-events-none">
+                    <div className="relative w-full sm:w-[300px]">
+                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                         <Search className="h-4 w-4 text-gray-400" />
                       </div>
                       <Input
@@ -392,7 +431,7 @@ export default function MyVaults() {
                     </div>
 
                     {/* Network Filter */}
-                    <div className="w-[200px] pr-8">
+                    <div className="w-full sm:w-[200px]">
                       <div className="relative opacity-50 pointer-events-none">
                         <ChainSelector
                           selectedChain={selectedChain}
@@ -433,53 +472,92 @@ export default function MyVaults() {
 
   // Main content for connected users
   return (
-    <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden" style={{ background: '#1E1E1E' }}>
-      {/* Scanline overlay */}
-      <div className="pointer-events-none px-0 fixed inset-0 z-0" style={{background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)'}} />
-      
+    <main className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden bg-[#0D0F14]">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#131822] via-[#0D0F14] to-[#0B0D12] opacity-90" />
+
+      {/* Decorative blurred circles */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#3673F5]/20 blur-3xl animate-pulse" />
+        <div className="absolute bottom-10 right-10 w-56 h-56 rounded-full bg-emerald-500/20 blur-3xl animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-44 h-44 rounded-full bg-[#7ecbff]/15 blur-2xl animate-pulse animation-delay-4000" />
+      </div>
+
+      {/* Rain animation overlay */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`green-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-green-400 to-emerald-500 rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = 50 + Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`blue-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-[#7ecbff] to-[#3673F5] rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+      </div>
+
       <div className="w-full mt-28 z-10">
         {/* Header Section */}
         <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
           <div className="relative">
-            <div className="relative rounded-3xl px-8 py-8">
+            <div className="relative rounded-3xl px-4 sm:px-8 py-6 sm:py-8">
               <div className="flex flex-col gap-6">
                 {/* Title and Create Button Row */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <h1 className="font-futuristic text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                    <div className="text-center sm:text-left">
+                      <h1 className="font-futuristic text-3xl sm:text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-300 font-bold tracking-wider mb-2">
                         My Vaults
                       </h1>
-                      <div className="relative mx-auto w-64 h-1">
+                      <div className="relative mx-auto sm:mx-0 w-48 sm:w-64 h-1">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-400 to-transparent rounded-full"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full blur-sm opacity-50"></div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center">
                     <Button
                       onClick={syncVaults}
                       disabled={syncing || !isConnected}
-                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                      {syncing ? 'Syncing...' : 'Sync'}
+                      <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync'}</span>
                     </Button>
                     <Button
                       onClick={() => router.push('/createVault')}
-                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10"
+                      className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-3 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 text-sm"
                     >
-                      <PlusCircle className="h-5 w-5" />
-                      Create Vault
+                      <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="hidden sm:inline">Create Vault</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Search and Filter Row */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                   {/* Search Bar */}
-                  <div className="relative w-[300px] pl-12">
-                    <div className="absolute inset-y-0 left-15 flex items-center pointer-events-none">
+                  <div className="relative w-full sm:w-[300px]">
+                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                       <Search className="h-4 w-4 text-gray-400" />
                     </div>
                     <Input
@@ -490,13 +568,13 @@ export default function MyVaults() {
                     />
                   </div>
 
-                                      {/* Network Filter */}
-                    <div className="w-[200px] pr-8">
-                      <ChainSelector
-                        selectedChain={selectedChain}
-                        onChainSelect={setSelectedChain}
-                      />
-                    </div>
+                  {/* Network Filter */}
+                  <div className="w-full sm:w-[200px]">
+                    <ChainSelector
+                      selectedChain={selectedChain}
+                      onChainSelect={setSelectedChain}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -504,7 +582,7 @@ export default function MyVaults() {
         </div>
 
         {/* Content */}
-        <div className="px-6 sm:px-8 md:px-14 lg:px-20 xl:px-28 2xl:px-38 mb-12">
+        <div className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 mb-12">
           {error && (
             <div className="text-center py-8 mb-8">
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -512,9 +590,9 @@ export default function MyVaults() {
               </div>
             </div>
           )}
-          
+
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <LoadingSkeleton key={idx} />
               ))}
@@ -536,8 +614,8 @@ export default function MyVaults() {
                     {vaults.length === 0 ? 'No Vaults Yet' : 'No Vaults Found'}
                   </h3>
                   <p className="text-gray-300 font-futuristic mb-6">
-                    {vaults.length === 0 
-                      ? 'Create your first vault and start earning rewards!' 
+                    {vaults.length === 0
+                      ? 'Create your first vault and start earning rewards!'
                       : 'No vaults match your search criteria.'}
                   </p>
                   <Button
@@ -568,17 +646,16 @@ export default function MyVaults() {
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2 mx-4">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <Button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
-                      page === currentPage
-                        ? 'bg-white/20 border border-white/30 text-white shadow-lg'
-                        : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
-                    }`}
+                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${page === currentPage
+                      ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                      : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                      }`}
                   >
                     {page}
                   </Button>

@@ -19,7 +19,7 @@ import { VaultCard } from '@/components/VaultCard';
 export default function FavoritesPage() {
   const router = useRouter();
   const { address: userAddress, isConnected } = useAccount();
-  
+
   const [favorites, setFavorites] = useState<VaultData[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -43,7 +43,7 @@ export default function FavoritesPage() {
       setLoading(true);
       setError(null);
       await indexedDBManager.init();
-      
+
       // First, try to load from IndexedDB
       let cachedFavorites: VaultData[] = [];
       try {
@@ -52,21 +52,21 @@ export default function FavoritesPage() {
         console.log('User favorites store not ready yet, will sync from blockchain');
         // If userFavorites store doesn't exist yet, we'll sync from blockchain
       }
-      
+
       if (cachedFavorites.length > 0) {
         setFavorites(cachedFavorites);
         setLoading(false);
-        
+
         // Check if data is stale (older than 5 minutes)
-        const hasStaleData = cachedFavorites.some(vault => 
+        const hasStaleData = cachedFavorites.some(vault =>
           Date.now() - vault.lastUpdated > 5 * 60 * 1000
         );
-        
+
         if (!hasStaleData) {
           return; // Data is fresh, no need to sync
         }
       }
-      
+
       // If no cached data or data is stale, fetch from blockchain
       await syncFavorites();
     } catch (err) {
@@ -79,11 +79,11 @@ export default function FavoritesPage() {
 
   const syncFavorites = async () => {
     if (!isConnected || !userAddress) return;
-    
+
     try {
       setSyncing(true);
       setError(null);
-      
+
       const client = getPublicClient(config);
       const factoryAddress = RaindropFractoryAddress[534351] as `0x${string}`;
 
@@ -208,7 +208,7 @@ export default function FavoritesPage() {
       <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
         {/* Scanline overlay */}
         <div className="pointer-events-none fixed inset-0 z-0" style={{ background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)' }} />
-        
+
         <div className="relative z-10 text-center">
           <div className="relative inline-block">
             <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-indigo-500/30 rounded-2xl"></div>
@@ -235,7 +235,7 @@ export default function FavoritesPage() {
       <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
         {/* Scanline overlay */}
         <div className="pointer-events-none fixed inset-0 z-0" style={{ background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)' }} />
-        
+
         <div className="relative z-10">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-400 mx-auto mb-4"></div>
           <p className="text-gray-300 font-futuristic font-bold text-lg">Loading favorites...</p>
@@ -245,57 +245,62 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden p-4" style={{ background: '#1E1E1E' }}>
-      {/* Scanline overlay */}
-      <div className="pointer-events-none fixed inset-0 z-0" style={{ background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 4px)' }} />
+    <div className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden p-4 bg-[#0D0F14]">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#131822] via-[#0D0F14] to-[#0B0D12] opacity-90" />
+
+      {/* Decorative blurred circles */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-purple-500/20 blur-3xl animate-pulse" />
+        <div className="absolute bottom-10 right-10 w-56 h-56 rounded-full bg-pink-500/20 blur-3xl animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-44 h-44 rounded-full bg-indigo-500/15 blur-2xl animate-pulse animation-delay-4000" />
+      </div>
 
       {/* Raindrop Animation */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        {[
-          ...[...Array(3)].map(() => ({
-            leftPercent: Math.random() * 49,
-            color: 'green',
-          })),
-          ...[...Array(3)].map(() => ({
-            leftPercent: 50 + Math.random() * 49,
-            color: 'blue',
-          }))
-        ].map((drop, i) => {
-          const left = `${drop.leftPercent}%`;
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = Math.random() * 49;
           const delay = `${Math.random() * 3}s`;
           const duration = `${3 + Math.random() * 2}s`;
-          const dropClass = drop.color === 'green'
-            ? "bg-gradient-to-b from-green-400 to-emerald-500"
-            : "bg-gradient-to-b from-[#7ecbff] to-[#3673F5]";
           return (
             <div
-              key={i}
+              key={`green-${i}`}
               className="absolute top-0 animate-rain"
-              style={{
-                left,
-                animationDelay: delay,
-                animationDuration: duration,
-              }}
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
             >
-              <div className={`w-[2px] h-8 ${dropClass} rounded-full shadow-lg opacity-40`}></div>
+              <div className="w-[2px] h-8 bg-gradient-to-b from-purple-400 to-pink-500 rounded-full shadow-lg opacity-90" />
+            </div>
+          );
+        })}
+        {[...Array(4)].map((_, i) => {
+          const leftPercent = 50 + Math.random() * 49;
+          const delay = `${Math.random() * 3}s`;
+          const duration = `${3 + Math.random() * 2}s`;
+          return (
+            <div
+              key={`blue-${i}`}
+              className="absolute top-0 animate-rain"
+              style={{ left: `${leftPercent}%`, animationDelay: delay, animationDuration: duration }}
+            >
+              <div className="w-[2px] h-8 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full shadow-lg opacity-90" />
             </div>
           );
         })}
       </div>
 
-      <div className="w-full mt-24 mb-12 z-10 space-y-8 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-24">
+      <div className="w-full mt-20 sm:mt-24 mb-12 z-10 space-y-8 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-24">
         {/* Header */}
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
           <Button
             onClick={() => router.back()}
-            className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 px-4 py-2 hover:bg-white/15 transition-all flex items-center gap-2"
+            className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 px-4 py-2 hover:bg-white/15 transition-all flex items-center gap-2 self-start sm:self-auto"
           >
             <ArrowLeft size={20} className="text-white" />
             <span className="text-white font-futuristic">Back</span>
           </Button>
 
-          <div className="text-center">
-            <h1 className="font-futuristic text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 font-bold tracking-wider mb-2">
+          <div className="text-center flex-1">
+            <h1 className="font-futuristic text-4xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 font-bold tracking-wider mb-2">
               Favorite Vaults
             </h1>
             <div className="relative mx-auto w-32 h-1">
@@ -307,7 +312,7 @@ export default function FavoritesPage() {
           <Button
             onClick={syncFavorites}
             disabled={syncing}
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed self-end sm:self-auto"
           >
             <RefreshCw size={20} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? 'Syncing...' : 'Sync'}</span>
@@ -357,7 +362,7 @@ export default function FavoritesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
               {currentFavorites.map((vault) => (
                 <VaultCard
                   key={vault.address}
@@ -384,17 +389,16 @@ export default function FavoritesPage() {
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
-                
+
                 <div className="flex items-center gap-2 mx-4">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <Button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
-                        page === currentPage
-                          ? 'bg-white/20 border border-white/30 text-white shadow-lg'
-                          : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
-                      }`}
+                      className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${page === currentPage
+                        ? 'bg-white/20 border border-white/30 text-white shadow-lg'
+                        : 'bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white/70 hover:text-white'
+                        }`}
                     >
                       {page}
                     </Button>
