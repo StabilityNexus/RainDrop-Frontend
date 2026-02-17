@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, ArrowRight, PlusCircle } from 'lucide-react';
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import StarBorder from '@/components/ui/StarBorder';
 
 export default function HomePage() {
   const router = useRouter();
@@ -70,44 +71,60 @@ export default function HomePage() {
       {/* Feature Cards */}
       <section className="relative z-10 w-full grid grid-cols-1 sm:grid-cols-2 gap-6 px-4 pb-32 max-w-4xl mx-auto">
         {/* Vaults Card */}
-        <div className="group relative bg-[#1A1F2B] rounded-2xl p-8 flex flex-col h-[320px] overflow-hidden shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#3673F5]/20 to-[#7ecbff]/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
-          <div className="flex items-center justify-center gap-3 mb-4 z-10">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-[#3673F5] to-[#7ecbff]">
-              <Sparkles className="text-white" size={24} />
+        <StarBorder
+          as="div"
+          className="w-full h-full"
+          color="#7ecbff"
+          speed="10s"
+          thickness={2}
+        >
+          <div className="group relative p-8 flex flex-col h-[320px] overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#3673F5]/20 to-[#7ecbff]/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
+            <div className="flex items-center justify-center gap-3 mb-4 z-10">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-[#3673F5] to-[#7ecbff]">
+                <Sparkles className="text-white" size={24} />
+              </div>
+              <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7ecbff] font-bold">Vaults</h3>
             </div>
-            <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-[#7ecbff] font-bold">Vaults</h3>
+            <p className="text-blue-300 font-futuristic mb-6 text-center z-10">
+              View and manage your existing vaults with ease.
+            </p>
+            <Button
+              onClick={() => router.push('/myVaults')}
+              className="mt-auto w-full h-12 bg-gradient-to-r from-[#3673F5] to-[#7ecbff] text-white font-bold gap-2 shadow-neon z-10"
+            >
+              View My Vaults <ArrowRight size={20} />
+            </Button>
           </div>
-          <p className="text-blue-300 font-futuristic mb-6 text-center z-10">
-            View and manage your existing vaults with ease.
-          </p>
-          <Button
-            onClick={() => router.push('/myVaults')}
-            className="mt-auto w-full h-12 bg-gradient-to-r from-[#3673F5] to-[#7ecbff] text-white font-bold gap-2 shadow-neon z-10"
-          >
-            View My Vaults <ArrowRight size={20} />
-          </Button>
-        </div>
+        </StarBorder>
 
         {/* Create Vault Card */}
-        <div className="group relative bg-[#1A1F2B] rounded-2xl p-8 flex flex-col h-[320px] overflow-hidden shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-400/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
-          <div className="flex items-center justify-center gap-3 mb-4 z-10">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-400">
-              <PlusCircle className="text-white" size={24} />
+        <StarBorder
+          as="div"
+          className="w-full h-full"
+          color="#10b981"
+          speed="10s"
+          thickness={2}
+        >
+          <div className="group relative p-8 flex flex-col h-[320px] overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-400/20 opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
+            <div className="flex items-center justify-center gap-3 mb-4 z-10">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-400">
+                <PlusCircle className="text-white" size={24} />
+              </div>
+              <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-green-400 font-bold">Create Vault</h3>
             </div>
-            <h3 className="font-futuristic text-2xl text-transparent bg-clip-text bg-gradient-to-r from-white to-green-400 font-bold">Create Vault</h3>
+            <p className="text-emerald-300 font-futuristic mb-6 text-center z-10">
+              Launch a new vault for your community and start distributing rewards.
+            </p>
+            <Button
+              onClick={() => router.push('/createVault')}
+              className="mt-auto w-full h-12 bg-gradient-to-r from-emerald-500 to-green-400 text-white font-bold gap-2 shadow-neon z-10"
+            >
+              Create New Vault <PlusCircle size={20} />
+            </Button>
           </div>
-          <p className="text-emerald-300 font-futuristic mb-6 text-center z-10">
-            Launch a new vault for your community and start distributing rewards.
-          </p>
-          <Button
-            onClick={() => router.push('/createVault')}
-            className="mt-auto w-full h-12 bg-gradient-to-r from-emerald-500 to-green-400 text-white font-bold gap-2 shadow-neon z-10"
-          >
-            Create New Vault <PlusCircle size={20} />
-          </Button>
-        </div>
+        </StarBorder>
       </section>
 
       {/* How It Works Section */}
