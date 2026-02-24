@@ -98,11 +98,11 @@ const navigation = [
 
 export default function Footer() {
   return (
-    <footer className='w-full px-6 md:px-24 py-8 bg-gray-800/20 border-t border-gray-700'>
-      <div className='max-w-6xl mx-auto'>
-        <div className='flex flex-col md:flex-row items-center justify-between gap-6'>
-          {/* Navigation Links */}
-          <div className='flex items-center justify-between'>
+    <footer className='w-full bg-gray-800/20 border-t border-gray-700'>
+      <div className='max-w-[64rem] mx-auto px-5 py-8'>
+        <div className='grid grid-cols-1 md:grid-cols-3 items-center gap-6'>
+          {/* Logo */}
+          <div className='flex justify-center md:justify-start'>
             <a
               href='https://stability.nexus'
               target='_blank'
@@ -119,7 +119,8 @@ export default function Footer() {
               />
             </a>
           </div>
-          <div className='flex flex-wrap items-center gap-6 text-sm'>
+          {/* Links */}
+          <div className='flex flex-wrap justify-center gap-6 text-sm'>
             <Link
               href='https://stability.nexus/protocols'
               target='_blank'
@@ -127,6 +128,7 @@ export default function Footer() {
             >
               Other Protocols
             </Link>
+
             <Link
               href='https://stability.nexus/research'
               target='_blank'
@@ -151,7 +153,7 @@ export default function Footer() {
           </div>
 
           {/* Social Media Links */}
-          <div className='flex items-center gap-3'>
+          <div className='flex justify-center md:justify-end gap-3'>
             {navigation.map(item => (
               <Link
                 key={item.name}
@@ -160,7 +162,7 @@ export default function Footer() {
                 className='rounded-full bg-gray-700/50 p-2 hover:bg-blue-500/20 transition-colors'
               >
                 <span className='sr-only'>{item.name}</span>
-                <item.icon className='w-5 h-5' aria-hidden='true' />
+                <item.icon className='w-5 h-5' />
               </Link>
             ))}
           </div>
